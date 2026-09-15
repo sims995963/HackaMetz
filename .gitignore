@@ -1,0 +1,20 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+
+# Variables d'environnement (voir .env.example)
+.env
+.env.*
+!.env.example
+
+# Base de données JSON et base de connaissance (dépôt Git séparé)
+server/data/*
+!server/data/.gitkeep
+server/storage/*
+!server/storage/.gitkeep
+
+# Captures du parcours e2e
+scripts/shots/

@@ -1,0 +1,27 @@
+{
+  "name": "HackaMetz",
+  "short_name": "HackaMetz",
+  "description": "La plateforme des hackathons : éditions, équipes, dépôt des projets et base de connaissance.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8fc",
+  "theme_color": "#2f6bff",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Hackathons", "url": "/hackathons" },
+    { "name": "Base de connaissance", "url": "/kb" },
+    { "name": "Mon profil", "url": "/me" }
+  ]
+}
