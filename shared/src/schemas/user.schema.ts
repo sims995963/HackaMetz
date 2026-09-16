@@ -49,6 +49,17 @@ export type EnterResponse = z.infer<typeof enterResponseSchema>;
 export const meResponseSchema = z.object({
   user: userSchema,
 });
+
+/** Vue organisateur d'un pseudo : le nombre d'appareils liés dit s'il est bloqué ailleurs. */
+export const adminUserSchema = userSchema.extend({
+  devices: z.number().int().nonnegative(),
+  /** Nombre d'éditions rejointes, pour distinguer un curieux d'un participant. */
+  registrations: z.number().int().nonnegative(),
+});
+export type AdminUser = z.infer<typeof adminUserSchema>;
+
+export const adminUsersResponseSchema = z.object({ users: z.array(adminUserSchema) });
+export type AdminUsersResponse = z.infer<typeof adminUsersResponseSchema>;
 export type MeResponse = z.infer<typeof meResponseSchema>;
 
 /** Résumé d'un hackathon dans le profil. */

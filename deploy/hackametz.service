@@ -1,0 +1,33 @@
+# Serveur HackaMetz sur une machine Linux (vieux PC, NAS, Raspberry Pi).
+#
+#   sudo cp deploy/hackametz.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now hackametz
+#
+# Adapte User, WorkingDirectory et le chemin de node si besoin (`which node`).
+
+[Unit]
+Description=HackaMetz — plateforme de hackathons
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hackametz
+WorkingDirectory=/opt/hackametz
+# La clé d'organisateur vit dans le .env du projet, lisible par ce seul utilisateur (chmod 600).
+EnvironmentFile=/opt/hackametz/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node server/dist/server.js
+Restart=always
+RestartSec=3
+# Le serveur n'écrit que dans ses deux dossiers de données.
+ReadWritePaths=/opt/hackametz/server/data /opt/hackametz/server/storage /opt/hackametz/server/backups
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

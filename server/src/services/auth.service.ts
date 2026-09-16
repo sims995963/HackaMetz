@@ -1,4 +1,4 @@
-import type { EnterResponse, PseudoPolicy, User } from '@hackametz/shared';
+import type { AdminUser, EnterResponse, PseudoPolicy, User } from '@hackametz/shared';
 import { createUser, normalizePseudo, toPublicUser, type UserRecord } from '../models/user.model';
 import type { Repositories } from '../repositories';
 import { hashToken, newDeviceToken } from '../utils/crypto';
@@ -67,9 +67,19 @@ export class AuthService {
     return toPublicUser(updated);
   }
 
-  async listUsers(): Promise<User[]> {
-    const users = await this.repos.users.all();
-    return users.map(toPublicUser);
+  /** Liste pour l'organisateur : pseudo public + de quoi décider s'il faut le libérer. */
+  async listUsers(): Promise<AdminUser[]> {
+    const [users, registrations] = await Promise.all([
+      this.repos.users.all(),
+      this.repos.registrations.all(),
+    ]);
+    return users
+      .map((user) => ({
+        ...toPublicUser(user),
+        devices: user.deviceTokenHashes.length,
+        registrations: registrations.filter((r) => r.userId === user.id).length,
+      }))
+      .sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
   }
 
   private async touch(userId: string): Promise<User> {

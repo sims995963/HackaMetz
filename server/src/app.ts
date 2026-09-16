@@ -12,7 +12,7 @@ import { errorHandler, notFound } from './middlewares/errorHandler';
 import { adminKeyRateLimit } from './middlewares/rateLimit';
 import { session } from './middlewares/session';
 import { apiRouter } from './routes';
-import { logger } from './utils/logger';
+import { logger, REDACTED_PATHS } from './utils/logger';
 
 /** Assemble l'application Express : middlewares globaux → API → front (si construit) → erreurs. */
 export function createApp(ctx: AppContext): Express {
@@ -30,7 +30,13 @@ export function createApp(ctx: AppContext): Express {
   app.use(cors({ origin: env.CLIENT_ORIGIN, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
   if (!isTest)
-    app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/api/health' } }));
+    app.use(
+      pinoHttp({
+        logger,
+        redact: { paths: REDACTED_PATHS, censor: '[masqué]' },
+        autoLogging: { ignore: (req) => req.url === '/api/health' },
+      }),
+    );
 
   app.use(session(ctx));
   // Les mauvaises clés d'organisateur sont freinées avant d'atteindre les routes.

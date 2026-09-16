@@ -23,10 +23,6 @@ const ctx = createContext({
   pseudoPolicy: env.PSEUDO_POLICY,
 });
 
-if (env.ADMIN_KEY === 'change-moi-avant-le-premier-hackathon') {
-  logger.warn('ADMIN_KEY est la valeur par défaut : change-la dans .env avant un vrai hackathon');
-}
-
 const app = createApp(ctx);
 const stopLifecycleJob = startLifecycleJob(ctx);
 const server = app.listen(env.PORT, () => {

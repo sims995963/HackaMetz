@@ -1,0 +1,15 @@
+# Sauvegarde périodique des données et des projets déposés.
+#
+#   sudo cp deploy/hackametz-backup.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now hackametz-backup.timer
+#
+# Vérifier : systemctl list-timers hackametz-backup
+
+[Unit]
+Description=Sauvegarde HackaMetz
+
+[Service]
+Type=oneshot
+User=hackametz
+WorkingDirectory=/opt/hackametz
+ExecStart=/usr/bin/npm run backup

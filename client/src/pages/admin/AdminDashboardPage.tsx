@@ -27,6 +27,7 @@ import { QrDialog } from '@/components/hackathon/QrDialog';
 import { AuditLog } from '@/components/admin/AuditLog';
 import { ExportMenu } from '@/components/admin/ExportMenu';
 import { ServerHealth } from '@/components/admin/ServerHealth';
+import { UsersPanel } from '@/components/admin/UsersPanel';
 import { StatusBadge } from '@/components/hackathon/StatusBadge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Menu, MenuItem, MenuLabel, MenuLink, MenuSeparator } from '@/components/ui/menu';
@@ -284,6 +285,8 @@ export function AdminDashboardPage() {
       </section>
 
       {stats?.diagnostics && <ServerHealth diagnostics={stats.diagnostics} />}
+
+      <UsersPanel enabled={Boolean(stats)} />
 
       <AuditLog enabled={Boolean(stats)} />
 

@@ -17,6 +17,8 @@ import { createUser } from '../models/user.model';
 import { createVote } from '../models/vote.model';
 
 const reset = process.argv.includes('--reset');
+/** `--empty` : on vide tout et on s'arrête là — pas de données de démonstration. */
+const empty = process.argv.includes('--empty');
 
 const ctx = createContext({
   dataDir: paths.dataDir,
@@ -555,6 +557,10 @@ async function main() {
     await ctx.repos.hackathons.clear();
     await ctx.repos.users.clear();
     console.log('Collections vidées.');
+    if (empty) {
+      console.log('Base vide : crée ton édition depuis /admin.');
+      return;
+    }
   } else if ((await ctx.repos.hackathons.count()) > 0) {
     console.log(
       'Des hackathons existent déjà — rien à faire. Utilise --reset pour repartir de zéro.',

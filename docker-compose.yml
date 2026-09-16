@@ -1,0 +1,25 @@
+# Mise en route sur la machine qui reste allumée :
+#   ADMIN_KEY=<ta-clé> docker compose up -d --build
+# Les projets déposés et la base JSON survivent aux redémarrages et aux mises à jour de l'image.
+services:
+  hackametz:
+    build: .
+    image: hackametz:latest
+    container_name: hackametz
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # Obligatoire : le serveur refuse de démarrer sans vraie clé (npm run admin-key).
+      ADMIN_KEY: ${ADMIN_KEY:?ADMIN_KEY manquante}
+      PSEUDO_POLICY: ${PSEUDO_POLICY:-device-bound}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - hackametz-data:/app/server/data
+      - hackametz-storage:/app/server/storage
+
+volumes:
+  hackametz-data:
+  hackametz-storage:
