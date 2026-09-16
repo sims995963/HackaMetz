@@ -1,5 +1,6 @@
 import type {
   Announcement,
+  AuditEntry,
   Evaluation,
   Feedback,
   Hackathon,
@@ -11,12 +12,34 @@ import type {
   Team,
   Vote,
 } from '@hackametz/shared';
+import {
+  announcementSchema,
+  auditEntrySchema,
+  evaluationSchema,
+  feedbackSchema,
+  hackathonSchema,
+  proposalRoundSchema,
+  proposalVoteSchema,
+  questionSchema,
+  registrationSchema,
+  submissionSchema,
+  teamSchema,
+  userSchema,
+  voteSchema,
+} from '@hackametz/shared';
+import { z } from 'zod';
 import type { UserRecord } from '../models/user.model';
 import { JsonRepository } from './JsonRepository';
 import type { Repository } from './Repository';
 
+/** L'utilisateur stocké = l'utilisateur public + les empreintes de ses tokens d'appareil. */
+const userRecordSchema: z.ZodType<UserRecord> = userSchema.extend({
+  deviceTokenHashes: z.array(z.string()),
+});
+
 export interface Repositories {
   users: Repository<UserRecord>;
+  audit: Repository<AuditEntry>;
   hackathons: Repository<Hackathon>;
   registrations: Repository<Registration>;
   submissions: Repository<Submission>;
@@ -30,21 +53,29 @@ export interface Repositories {
   feedback: Repository<Feedback>;
 }
 
-/** Une collection = un fichier JSON dans dataDir. */
+/**
+ * Une collection = un fichier JSON dans dataDir, validé par son schéma zod à l'ouverture
+ * (les enregistrements illisibles sont mis de côté plutôt que de faire tomber le serveur).
+ */
 export function createRepositories(dataDir: string): Repositories {
   return {
-    users: new JsonRepository<UserRecord>(dataDir, 'users'),
-    hackathons: new JsonRepository<Hackathon>(dataDir, 'hackathons'),
-    registrations: new JsonRepository<Registration>(dataDir, 'registrations'),
-    submissions: new JsonRepository<Submission>(dataDir, 'submissions'),
-    teams: new JsonRepository<Team>(dataDir, 'teams'),
-    announcements: new JsonRepository<Announcement>(dataDir, 'announcements'),
-    evaluations: new JsonRepository<Evaluation>(dataDir, 'evaluations'),
-    votes: new JsonRepository<Vote>(dataDir, 'votes'),
-    proposalRounds: new JsonRepository<ProposalRound>(dataDir, 'proposal-rounds'),
-    proposalVotes: new JsonRepository<ProposalVote>(dataDir, 'proposal-votes'),
-    questions: new JsonRepository<Question>(dataDir, 'questions'),
-    feedback: new JsonRepository<Feedback>(dataDir, 'feedback'),
+    users: new JsonRepository<UserRecord>(dataDir, 'users', userRecordSchema),
+    audit: new JsonRepository<AuditEntry>(dataDir, 'audit', auditEntrySchema),
+    hackathons: new JsonRepository<Hackathon>(dataDir, 'hackathons', hackathonSchema),
+    registrations: new JsonRepository<Registration>(dataDir, 'registrations', registrationSchema),
+    submissions: new JsonRepository<Submission>(dataDir, 'submissions', submissionSchema),
+    teams: new JsonRepository<Team>(dataDir, 'teams', teamSchema),
+    announcements: new JsonRepository<Announcement>(dataDir, 'announcements', announcementSchema),
+    evaluations: new JsonRepository<Evaluation>(dataDir, 'evaluations', evaluationSchema),
+    votes: new JsonRepository<Vote>(dataDir, 'votes', voteSchema),
+    proposalRounds: new JsonRepository<ProposalRound>(
+      dataDir,
+      'proposal-rounds',
+      proposalRoundSchema,
+    ),
+    proposalVotes: new JsonRepository<ProposalVote>(dataDir, 'proposal-votes', proposalVoteSchema),
+    questions: new JsonRepository<Question>(dataDir, 'questions', questionSchema),
+    feedback: new JsonRepository<Feedback>(dataDir, 'feedback', feedbackSchema),
   };
 }
 

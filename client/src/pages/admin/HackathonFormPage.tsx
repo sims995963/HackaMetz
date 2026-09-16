@@ -5,6 +5,8 @@ import {
   DEFAULT_TIMEZONE,
   HACKATHON_FORMATS,
   HACKATHON_FORMAT_LABELS,
+  TIE_BREAK_LABELS,
+  TIE_BREAK_MODES,
   type CreateHackathonInput,
   type HackathonWithCounts,
 } from '@hackametz/shared';
@@ -71,9 +73,12 @@ const formSchema = z
       maxFiles: positiveInt('Nombre de fichiers'),
       allowResubmit: z.boolean(),
       allowLate: z.boolean(),
+      rejectSecrets: z.boolean(),
       license: z.string().trim().min(1, 'Licence requise'),
     }),
     publicVote: z.boolean(),
+    tieBreakMode: z.enum(TIE_BREAK_MODES),
+    tieBreakCriterionId: z.string(),
     criteria: z.array(
       z.object({
         id: z.string().optional(),
@@ -155,9 +160,12 @@ const EMPTY: FormValues = {
     maxFiles: 2000,
     allowResubmit: true,
     allowLate: false,
+    rejectSecrets: false,
     license: DEFAULT_LICENSE,
   },
   publicVote: true,
+  tieBreakMode: 'publicVote',
+  tieBreakCriterionId: '',
   criteria: [
     { label: 'Impact', description: '', weight: 2, maxScore: 10 },
     { label: 'Qualité technique', description: '', weight: 1, maxScore: 10 },
@@ -196,9 +204,12 @@ function fromHackathon(h: HackathonWithCounts): FormValues {
       maxFiles: h.submission.maxFiles,
       allowResubmit: h.submission.allowResubmit,
       allowLate: h.submission.allowLate,
+      rejectSecrets: h.submission.rejectSecrets ?? false,
       license: h.submission.license,
     },
     publicVote: h.publicVote ?? false,
+    tieBreakMode: h.tieBreak?.mode ?? 'publicVote',
+    tieBreakCriterionId: h.tieBreak?.criterionId ?? '',
     criteria: h.criteria.map((c) => ({
       id: c.id,
       label: c.label,
@@ -247,10 +258,15 @@ function toPayload(v: FormValues): CreateHackathonInput {
       maxFiles: v.submission.maxFiles,
       allowResubmit: v.submission.allowResubmit,
       allowLate: v.submission.allowLate,
+      rejectSecrets: v.submission.rejectSecrets,
       license: v.submission.license,
       requiredFields: ['pitch', 'techStack'],
     },
     publicVote: v.publicVote,
+    tieBreak: {
+      mode: v.tieBreakMode,
+      criterionId: v.tieBreakMode === 'criterion' ? v.tieBreakCriterionId || null : null,
+    },
     criteria: v.criteria,
     prizes: v.prizes.map((p, i) => ({ rank: i + 1, label: p.label, description: p.description })),
     resources: v.resources,
@@ -347,6 +363,9 @@ function HackathonForm({
   const teamEnabled = watch('team.enabled');
   const visibility = watch('visibility');
   const coverColor = watch('coverColor');
+  const tieBreakMode = watch('tieBreakMode');
+  // Les identifiants de critères n'existent qu'une fois le hackathon enregistré.
+  const namedCriteria = (existing?.criteria ?? []).filter((c) => c.id);
   const { data: jury } = useJury(existing?.slug ?? '');
   const [juryText, setJuryText] = useState('');
   const [juryError, setJuryError] = useState<string | null>(null);
@@ -628,6 +647,11 @@ function HackathonForm({
           <Checkbox {...register('submission.allowLate')} /> Tolérer les dépôts en retard (marqués «
           late »)
         </label>
+
+        <label className="flex items-center gap-2.5 text-sm sm:col-span-2">
+          <Checkbox {...register('submission.rejectSecrets')} /> Refuser un dépôt contenant une clé
+          ou un mot de passe (sinon simple avertissement)
+        </label>
         <Field
           label="Licence des projets"
           htmlFor={`${id}-license`}
@@ -642,6 +666,44 @@ function HackathonForm({
           <Checkbox {...register('publicVote')} /> Vote du public activé (chaque participant a un
           coup de cœur, hors son propre projet)
         </label>
+
+        <Field
+          label="Départage des ex æquo"
+          htmlFor={`${id}-tiebreak`}
+          hint="Appliqué quand deux projets obtiennent exactement le même score."
+        >
+          <Select id={`${id}-tiebreak`} {...register('tieBreakMode')}>
+            {TIE_BREAK_MODES.map((mode) => (
+              <option key={mode} value={mode}>
+                {TIE_BREAK_LABELS[mode]}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {tieBreakMode === 'criterion' && (
+          <Field
+            label="Critère prioritaire"
+            htmlFor={`${id}-tiebreak-criterion`}
+            hint={
+              namedCriteria.length === 0
+                ? 'Disponible après le premier enregistrement : le premier critère sera utilisé.'
+                : undefined
+            }
+          >
+            <Select
+              id={`${id}-tiebreak-criterion`}
+              disabled={namedCriteria.length === 0}
+              {...register('tieBreakCriterionId')}
+            >
+              <option value="">Premier critère de la liste</option>
+              {namedCriteria.map((criterion) => (
+                <option key={criterion.id} value={criterion.id}>
+                  {criterion.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
         <div className="flex flex-col gap-3 sm:col-span-2">
           {criteria.fields.map((field, index) => (
             <div

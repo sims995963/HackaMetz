@@ -46,6 +46,25 @@ npm run build && npm start   # une seule URL : Express sert l'API et le front su
 | `npm run kb:export`         | Régénère README + manifests de `storage/` (`-- --commit` pour un commit)                                                                                                                                |
 | `node scripts/e2e-tour.mjs` | Parcours de l'app en Chromium headless : captures dans `scripts/shots/`, erreurs console/JS/HTTP (après `npm run build` ; nécessite `npm i -D --no-save playwright && npx playwright install chromium`) |
 
+## Exploitation
+
+| Commande                        | Quand                                                                      |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `npm run admin-key`             | Génère une clé d'organisateur solide et l'écrit dans `.env`                |
+| `npm run backup`                | Copie horodatée de `server/data` et `server/storage` dans `server/backups` |
+| `npm run backup -- --every 30`  | Idem, répété toutes les 30 min — à lancer pendant l'événement              |
+| `npm run backup -- --to D:/cle` | Sauvegarde vers un disque externe                                          |
+| `npm run format:check`          | Ce que la CI vérifie (GitHub Actions lance lint, types, tests et build)    |
+
+**Restaurer** : arrêter le serveur, remplacer `server/data` et `server/storage` par les dossiers de
+la sauvegarde choisie, relancer. Le dashboard affiche l'espace disque restant et l'âge de la
+dernière sauvegarde — s'il dépasse six heures, il le signale.
+
+La clé d'organisateur n'a pas de valeur par défaut utilisable : le serveur refuse de démarrer sur
+une valeur d'exemple, et les mauvaises tentatives de clé sont freinées (20 par dix minutes).
+Chaque action d'organisateur qui modifie quelque chose est inscrite dans le **journal**, consultable
+depuis le dashboard.
+
 ## Architecture
 
 Monorepo npm à trois paquets. MVC : le **modèle** est dans `server/src/models` + `repositories` + `storage`, la **vue** est le client React, les **contrôleurs** dans `server/src/controllers`, et `server/src/routes` à côté ne fait que brancher les URL.
@@ -103,6 +122,7 @@ Préfixe `/api`. Identité candidat : `Authorization: Bearer <token>` (renvoyé 
 | GET | `/hackathons/:slug/results` | public | Classement, publié quand le hackathon est terminé (provisoire pour l'admin) |
 | GET | `/kb/projects?q=&tech=&hackathon=` | public | Galerie de tous les projets, filtrable |
 | POST | `/admin/kb/export` | admin | Régénère README + manifests de `storage/`, commit Git optionnel |
+| GET | `/admin/audit?limit=` | admin | Journal des actions d'organisateur |
 | GET / POST | `/hackathons/:slug/questions` | public / candidat | Questions à l'organisateur (sans réponse d'abord, triées par soutien) |
 | POST | `/hackathons/:slug/questions/:id/answer` | admin | Répondre (markdown) |
 | PUT / DELETE | `/hackathons/:slug/questions/:id/upvote` | candidat | Soutenir / retirer son +1 |
@@ -122,7 +142,7 @@ Quand un hackathon est « en équipe », un inscrit crée une équipe (code d'in
 
 ## Jury, résultats, export
 
-L'organisateur désigne le jury par pseudos (formulaire du hackathon). Chaque juré note chaque projet sur les critères pondérés (`/jury/:slug`) ; le score d'un projet est la moyenne des scores normalisés sur 100 (Σ note/max × poids / Σ poids). Le classement est public dès que le hackathon est « terminé » (podium, tableau par critère, commentaires du jury, coup de cœur du public), provisoire et privé avant. Le vote du public (un vote par inscrit, jamais pour son propre projet, ouvert pendant l'édition et la délibération) s'active par hackathon. `npm run kb:export -- --commit` (ou le bouton du dashboard) régénère l'index `storage/README.md`, les README par hackathon avec classement et les `project.json`, puis crée un commit dans `storage/` — un dépôt Git distinct de celui du code.
+L'organisateur désigne le jury par pseudos (formulaire du hackathon). Chaque juré note chaque projet sur les critères pondérés (`/jury/:slug`) ; le score d'un projet est la moyenne des scores normalisés sur 100 (Σ note/max × poids / Σ poids). Le classement est public dès que le hackathon est « terminé » (podium, tableau par critère, commentaires du jury, coup de cœur du public), provisoire et privé avant. Le vote du public (un vote par inscrit, jamais pour son propre projet, ouvert pendant l'édition et la délibération) s'active par hackathon. À égalité de score, la **règle de départage** choisie dans le formulaire tranche : vote du public (défaut), critère prioritaire, dépôt le plus ancien, ou rien (les ex æquo partagent le rang) ; la règle appliquée est rappelée sous le classement. `npm run kb:export -- --commit` (ou le bouton du dashboard) régénère l'index `storage/README.md`, les README par hackathon avec classement et les `project.json`, puis crée un commit dans `storage/` — un dépôt Git distinct de celui du code.
 
 ## Propositions de hackathons
 
@@ -147,13 +167,23 @@ Une édition peut être **dupliquée** (menu du dashboard ou de la page du hacka
 
 Le dashboard et la page des résultats proposent des **exports CSV** (participants, projets, classement complet par critère, retours) — ouvrables directement dans Excel ou LibreOffice.
 
+## Pendant l'événement
+
+`/hackathons/:slug/ecran` est le **mode vidéoprojecteur** : compte à rebours géant, annonces,
+mur des derniers dépôts en direct (flux SSE), compteurs et QR code pour rejoindre l'édition. Aucune
+navigation, rien à cliquer — il s'ouvre depuis le menu ⋯ d'un hackathon ou du dashboard.
+
+Le **scan de secrets** avertit le déposant quand une clé traîne dans son code. Par hackathon, on
+peut passer en mode strict (« Refuser un dépôt contenant une clé ») : le dépôt est alors rejeté, les
+fichiers fautifs sont nommés, et rien n'est écrit sur le disque.
+
 ## Questions, retours, palmarès
 
 Chaque hackathon a un onglet **Questions** : un inscrit pose une question, les autres la soutiennent d'un +1 (les plus soutenues remontent), l'organisateur répond en ligne ; tout arrive en temps réel via le flux SSE. Dès la fin des dépôts, les inscrits laissent un **retour** (note sur 5, ce qui a plu, à améliorer, « je reviendrais ») ; la synthèse est visible de tous, les commentaires anonymisés seulement par l'organisateur. Le **profil** calcule un palmarès à la volée (premiers pas, builder, esprit d'équipe, or/argent/bronze, coup de cœur, juré, vétéran, curieux) et liste les résultats finaux ; chaque édition terminée donne un **certificat** imprimable (`/me/certificat/:slug`, Ctrl+P → PDF).
 
 ## Pages
 
-`/` accueil · `/hackathons` liste (édition à la une + éditions passées en lignes) · `/hackathons/:slug` détail (présentation + retours, participants, annonces, questions, projets) · `/hackathons/:slug/submit` dépôt · `/hackathons/:slug/projects/:id` projet (arbre, README, viewer coloré) · `/hackathons/:slug/results` podium et classement · `/jury/:slug` grille de notation · `/kb` base de connaissance · `/propositions` tours de propositions et vote · `/admin/propositions/new` et `/admin/propositions/:id/edit` formulaire de tour · `/me` profil (palmarès, résultats) · `/me/certificat/:slug` certificat imprimable · `/admin` dashboard organisateur (clé requise) · `/admin/hackathons/new` et `/admin/hackathons/:slug/edit` formulaire.
+`/` accueil · `/hackathons` liste (édition à la une + éditions passées en lignes) · `/hackathons/:slug` détail (présentation + retours, participants, annonces, questions, projets) · `/hackathons/:slug/submit` dépôt · `/hackathons/:slug/projects/:id` projet (arbre, README, viewer coloré) · `/hackathons/:slug/results` podium et classement · `/jury/:slug` grille de notation · `/kb` base de connaissance · `/propositions` tours de propositions et vote · `/admin/propositions/new` et `/admin/propositions/:id/edit` formulaire de tour · `/hackathons/:slug/ecran` mode vidéoprojecteur · `/me` profil (palmarès, résultats) · `/me/certificat/:slug` certificat imprimable · `/admin` dashboard organisateur (clé requise) · `/admin/hackathons/new` et `/admin/hackathons/:slug/edit` formulaire.
 
 ## Application installable (PWA)
 
@@ -165,4 +195,4 @@ Pas de mot de passe. Au premier passage, le serveur crée le pseudo et renvoie u
 
 ## Prochaines étapes
 
-La roadmap de [docs/ANALYSE.md](docs/ANALYSE.md#15-roadmap) est livrée (sprints 0 à 3). Livré depuis : vote du public, propositions, questions/réponses, retours de fin, palmarès et certificats, recherche globale (palette ⌘K), duplication d'édition, exports CSV, PWA installable. Pistes suivantes : mentors / créneaux d'aide, push GitHub automatique de `storage/`, notifications par e-mail optionnelles.
+Les conventions internes (couches, ajout d'une fonctionnalité, pièges connus) sont dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). La roadmap de [docs/ANALYSE.md](docs/ANALYSE.md#15-roadmap) est livrée (sprints 0 à 3). Livré depuis : vote du public, propositions, questions/réponses, retours de fin, palmarès et certificats, recherche globale (palette ⌘K), duplication d'édition, exports CSV, PWA installable. Pistes suivantes : mentors / créneaux d'aide, push GitHub automatique de `storage/`, notifications par e-mail optionnelles.

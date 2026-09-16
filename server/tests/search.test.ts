@@ -90,9 +90,9 @@ describe('Recherche globale', () => {
     );
 
     const tech = await search(env, 'mqtt');
-    expect((tech.body.results as Result[]).some((r) => r.type === 'tech' && r.title === 'mqtt')).toBe(
-      true,
-    );
+    expect(
+      (tech.body.results as Result[]).some((r) => r.type === 'tech' && r.title === 'mqtt'),
+    ).toBe(true);
 
     const person = await search(env, 'alice');
     expect((person.body.results as Result[]).some((r) => r.type === 'person')).toBe(true);

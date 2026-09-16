@@ -28,9 +28,22 @@ export const serverTimeResponseSchema = z.object({
 });
 export type ServerTimeResponse = z.infer<typeof serverTimeResponseSchema>;
 
+/** Ce qu'il faut surveiller pendant un événement : place disque, volume archivé, sauvegarde. */
+export const diagnosticsSchema = z.object({
+  dataBytes: z.number().int(),
+  storageBytes: z.number().int(),
+  storageFiles: z.number().int(),
+  diskFreeBytes: z.number().int(),
+  diskTotalBytes: z.number().int(),
+  /** Dernière sauvegarde trouvée dans `server/backups` (null si aucune). */
+  lastBackupAt: z.iso.datetime().nullable(),
+});
+export type Diagnostics = z.infer<typeof diagnosticsSchema>;
+
 export const healthResponseSchema = z.object({
   status: z.literal('ok'),
   version: z.string(),
   uptimeSeconds: z.number(),
+  diagnostics: diagnosticsSchema,
 });
 export type HealthResponse = z.infer<typeof healthResponseSchema>;

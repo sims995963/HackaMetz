@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { HACKATHON_STATUSES } from '../constants';
+import { diagnosticsSchema } from './api.schema';
 
 /** Chiffres affichés sur la page d'accueil. */
 export const publicStatsSchema = z.object({
@@ -36,5 +37,7 @@ export const adminStatsSchema = publicStatsSchema.extend({
       }),
     )
     .default([]),
+  /** État du serveur : disque, stockage, dernière sauvegarde. */
+  diagnostics: diagnosticsSchema.nullable().default(null),
 });
 export type AdminStats = z.infer<typeof adminStatsSchema>;

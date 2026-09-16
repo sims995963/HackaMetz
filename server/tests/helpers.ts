@@ -39,6 +39,11 @@ export function hackathonInput(overrides: Record<string, unknown> = {}) {
     title: "IA pour l'éducation",
     theme: 'Apprendre autrement',
     dates: { startsAt: iso(1), submissionDeadlineAt: iso(2), endsAt: iso(3) },
+    // Sans critères, le serveur refuse toute notation : le fixture en fournit.
+    criteria: [
+      { label: 'Impact', weight: 2, maxScore: 10 },
+      { label: 'Technique', weight: 1, maxScore: 10 },
+    ],
     ...overrides,
   };
 }

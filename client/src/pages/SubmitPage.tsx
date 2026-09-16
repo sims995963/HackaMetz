@@ -8,6 +8,7 @@ import {
   FileArchive,
   FolderOpen,
   RotateCcw,
+  ShieldAlert,
   Upload,
 } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
@@ -60,6 +61,8 @@ export function SubmitPage() {
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [dragging, setDragging] = useState(false);
+  /** Fichiers refusés par le scan de secrets (mode strict). */
+  const [blockedFiles, setBlockedFiles] = useState<string[]>([]);
   const [collection, setCollection] = useState<Collection | null>(null);
   const [progress, setProgress] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -171,7 +174,11 @@ export function SubmitPage() {
       setPhase('ready');
       if (err instanceof ApiError) {
         toast.error(err.message);
-        if (err.details) {
+        // Secrets détectés : les chemins fautifs ne correspondent à aucun champ du formulaire,
+        // on les affiche à part pour que le déposant sache quoi retirer.
+        if (err.code === 'CONFLICT' && err.details?.length) {
+          setBlockedFiles(err.details.map((d) => `${d.path} — ${d.message}`));
+        } else if (err.details) {
           const next: Record<string, string> = {};
           for (const d of err.details) next[d.path] = d.message;
           setErrors(next);
@@ -248,6 +255,23 @@ export function SubmitPage() {
           </p>
         )}
       </header>
+
+      {blockedFiles.length > 0 && (
+        <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
+          <p className="flex items-center gap-2 font-medium text-destructive">
+            <ShieldAlert className="size-4" /> Dépôt refusé : des secrets ont été détectés
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Retire ces valeurs (ou déplace-les dans un fichier{' '}
+            <span className="font-mono">.env</span>, exclu automatiquement), puis redépose.
+          </p>
+          <ul className="mt-2 flex flex-col gap-1 font-mono text-xs text-destructive">
+            {blockedFiles.map((file) => (
+              <li key={file}>{file}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit}

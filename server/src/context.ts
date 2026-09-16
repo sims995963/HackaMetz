@@ -2,7 +2,9 @@ import type { PseudoPolicy } from '@hackametz/shared';
 import { EventBus } from './realtime/eventBus';
 import { createRepositories, type Repositories } from './repositories';
 import { AnnouncementService } from './services/announcement.service';
+import { AuditService } from './services/audit.service';
 import { AuthService } from './services/auth.service';
+import { DiagnosticsService } from './services/diagnostics.service';
 import { EvaluationService } from './services/evaluation.service';
 import { ExportService } from './services/export.service';
 import { FeedbackService } from './services/feedback.service';
@@ -47,6 +49,8 @@ export interface AppContext {
     profile: ProfileService;
     search: SearchService;
     exports: ExportService;
+    diagnostics: DiagnosticsService;
+    audit: AuditService;
   };
 }
 
@@ -81,6 +85,8 @@ export function createContext(options: ContextOptions): AppContext {
       profile: new ProfileService(repos, evaluations),
       search: new SearchService(repos),
       exports: new ExportService(repos, registrations, evaluations, feedback),
+      diagnostics: new DiagnosticsService(options.dataDir, options.storageDir),
+      audit: new AuditService(repos),
     },
   };
 }

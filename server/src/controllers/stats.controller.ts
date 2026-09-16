@@ -7,7 +7,11 @@ export function statsController(ctx: AppContext) {
   };
 
   const adminStats: RequestHandler = async (_req, res) => {
-    res.json(await ctx.services.hackathons.adminStats());
+    const [stats, diagnostics] = await Promise.all([
+      ctx.services.hackathons.adminStats(),
+      ctx.services.diagnostics.read(),
+    ]);
+    res.json({ ...stats, diagnostics });
   };
 
   return { publicStats, adminStats };

@@ -114,7 +114,9 @@ export class SearchService {
         id: u.id,
         title: u.pseudo,
         subtitle:
-          editions > 0 ? `${editions} projet${editions > 1 ? 's' : ''} déposé(s)` : 'pseudo inscrit',
+          editions > 0
+            ? `${editions} projet${editions > 1 ? 's' : ''} déposé(s)`
+            : 'pseudo inscrit',
         to: `/kb?q=${encodeURIComponent(u.pseudo)}`,
         code: null,
         coverColor: null,

@@ -4,7 +4,16 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', 'server/data/**', 'server/storage/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      'server/data/**',
+      'server/storage/**',
+      // Copies de sauvegarde : du code de participants, jamais le nôtre.
+      'server/backups/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

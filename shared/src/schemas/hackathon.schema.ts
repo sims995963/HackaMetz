@@ -69,12 +69,32 @@ export const submissionSettingsSchema = z.object({
   allowLate: z.boolean().default(false),
   requiredFields: z.array(z.enum(SUBMISSION_FIELDS)).default(['pitch', 'techStack']),
   license: z.string().min(1).default(DEFAULT_LICENSE),
+  /** Refuser le dépôt quand le scan repère une clé ou un mot de passe (sinon simple avertissement). */
+  rejectSecrets: z.boolean().default(false),
 });
 export type SubmissionSettings = z.infer<typeof submissionSettingsSchema>;
 
 // ---------------------------------------------------------------------------
 // Partie éditable par l'admin (= formulaire de création / édition)
 // ---------------------------------------------------------------------------
+
+export const TIE_BREAK_MODES = ['publicVote', 'criterion', 'submittedAt', 'none'] as const;
+export type TieBreakMode = (typeof TIE_BREAK_MODES)[number];
+
+export const TIE_BREAK_LABELS: Record<TieBreakMode, string> = {
+  publicVote: 'Le vote du public',
+  criterion: 'Un critère prioritaire',
+  submittedAt: 'Le dépôt le plus ancien',
+  none: 'Rien : les ex æquo partagent le rang',
+};
+
+/** Règle appliquée quand deux projets obtiennent exactement le même score. */
+export const tieBreakSchema = z.object({
+  mode: z.enum(TIE_BREAK_MODES).default('publicVote'),
+  /** Critère utilisé quand le mode est « criterion ». */
+  criterionId: z.string().nullable().default(null),
+});
+export type TieBreak = z.infer<typeof tieBreakSchema>;
 
 const hackathonEditableFields = {
   title: z.string().trim().min(3).max(120),
@@ -105,12 +125,15 @@ const hackathonEditableFields = {
     allowLate: false,
     requiredFields: ['pitch', 'techStack'],
     license: DEFAULT_LICENSE,
+    rejectSecrets: false,
   }),
   prizes: z.array(prizeSchema).default([]),
   resources: z.array(resourceSchema).default([]),
   juryIds: z.array(z.string()).default([]),
   /** Les participants peuvent voter pour un projet (coup de cœur du public). */
   publicVote: z.boolean().default(true),
+  /** Comment départager deux projets à égalité de score. */
+  tieBreak: tieBreakSchema.default({ mode: 'publicVote', criterionId: null }),
 };
 
 export const datesAreOrdered = (dates: HackathonDates) =>

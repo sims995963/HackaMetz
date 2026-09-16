@@ -13,4 +13,5 @@ export * from './schemas/question.schema';
 export * from './schemas/feedback.schema';
 export * from './schemas/search.schema';
 export * from './schemas/stats.schema';
+export * from './schemas/audit.schema';
 export * from './schemas/api.schema';

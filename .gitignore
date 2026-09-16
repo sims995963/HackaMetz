@@ -16,5 +16,8 @@ server/data/*
 server/storage/*
 !server/storage/.gitkeep
 
+# Sauvegardes locales (npm run backup)
+server/backups/
+
 # Captures du parcours e2e
 scripts/shots/

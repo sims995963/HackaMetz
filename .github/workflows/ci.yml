@@ -1,0 +1,48 @@
+name: CI
+
+# Chaque push et chaque pull request passent par la même vérification que celle
+# qu'on lance en local : format, lint, types, tests, build.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Format (prettier)
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Types
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+        env:
+          NODE_ENV: test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Clé factice : le build ne parle jamais au serveur, mais la config est lue.
+          ADMIN_KEY: cle-de-ci-suffisamment-longue-pour-passer

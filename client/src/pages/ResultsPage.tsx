@@ -1,4 +1,5 @@
 import type { ResultEntry } from '@hackametz/shared';
+import { TIE_BREAK_LABELS } from '@hackametz/shared';
 import { ArrowLeft, Award, Heart, MessageSquareQuote, Trophy, Users } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { ExportMenu } from '@/components/admin/ExportMenu';
@@ -30,6 +31,11 @@ export function ResultsPage() {
 
   const entries = results?.entries ?? [];
   const ranked = entries.filter((e) => e.score !== null && e.status !== 'disqualified');
+  // Rappel de la règle de départage, utile seulement s'il y a réellement des scores identiques.
+  const scores = ranked.map((e) => e.score);
+  const hasTie = scores.some((score, i) => score !== null && scores.indexOf(score) !== i);
+  const tieBreakLabel = TIE_BREAK_LABELS[h.tieBreak?.mode ?? 'publicVote'];
+
   const podium = ranked.slice(0, 3);
 
   return (
@@ -152,7 +158,14 @@ export function ResultsPage() {
 
       {ranked.length > 0 && (
         <section>
-          <h2 className="mb-3 text-lg font-semibold tracking-tight">Classement complet</h2>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-semibold tracking-tight">Classement complet</h2>
+            {hasTie && (
+              <p className="text-xs text-muted-foreground">
+                Ex æquo départagés par&nbsp;: {tieBreakLabel.toLowerCase()}
+              </p>
+            )}
+          </div>
           <Table>
             <thead>
               <tr>

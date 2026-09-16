@@ -151,7 +151,8 @@ export class HackathonService {
     };
   }
 
-  async adminStats(): Promise<AdminStats> {
+  /** Les diagnostics système sont ajoutés par le contrôleur : ils ne dépendent pas des données métier. */
+  async adminStats(): Promise<Omit<AdminStats, 'diagnostics'>> {
     const [base, hackathons, users, registrations, submissions, questions, feedback] =
       await Promise.all([
         this.publicStats(),

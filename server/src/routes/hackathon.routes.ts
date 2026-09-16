@@ -11,6 +11,7 @@ import { submissionController } from '../controllers/submission.controller';
 import { teamController } from '../controllers/team.controller';
 import { voteController } from '../controllers/vote.controller';
 import { requireAdmin, requireUser } from '../middlewares/guards';
+import { uploadRateLimit, writeRateLimit } from '../middlewares/rateLimit';
 import { uploadArchive } from '../middlewares/upload';
 import { hackathonEvents } from '../realtime/sse';
 
@@ -35,24 +36,30 @@ export function hackathonRoutes(ctx: AppContext) {
   router.get('/hackathons/:slug/events', hackathonEvents(ctx));
 
   router.get('/hackathons/:slug/participants', registrations.participants);
-  router.post('/hackathons/:slug/registration', requireUser, registrations.join);
+  router.post('/hackathons/:slug/registration', writeRateLimit, requireUser, registrations.join);
   router.delete('/hackathons/:slug/registration', requireUser, registrations.leave);
 
   router.get('/hackathons/:slug/teams', teams.list);
   router.get('/hackathons/:slug/teams/mine', requireUser, teams.mine);
-  router.post('/hackathons/:slug/teams', requireUser, teams.create);
-  router.post('/hackathons/:slug/teams/join', requireUser, teams.join);
+  router.post('/hackathons/:slug/teams', writeRateLimit, requireUser, teams.create);
+  router.post('/hackathons/:slug/teams/join', writeRateLimit, requireUser, teams.join);
   router.delete('/hackathons/:slug/teams/mine', requireUser, teams.leave);
 
   router.get('/hackathons/:slug/submissions', submissions.listForHackathon);
-  router.post('/hackathons/:slug/submissions', requireUser, uploadArchive(ctx), submissions.submit);
+  router.post(
+    '/hackathons/:slug/submissions',
+    uploadRateLimit,
+    requireUser,
+    uploadArchive(ctx),
+    submissions.submit,
+  );
 
   router.get('/hackathons/:slug/jury', evaluations.jury);
   router.put('/hackathons/:slug/jury', requireAdmin, evaluations.setJury);
   router.get('/hackathons/:slug/evaluations/mine', requireUser, evaluations.mine);
   router.get('/hackathons/:slug/results', evaluations.results);
   router.get('/hackathons/:slug/votes', votes.summary);
-  router.put('/hackathons/:slug/vote', requireUser, votes.cast);
+  router.put('/hackathons/:slug/vote', writeRateLimit, requireUser, votes.cast);
   router.delete('/hackathons/:slug/vote', requireUser, votes.withdraw);
 
   router.get('/hackathons/:slug/announcements', announcements.list);
@@ -60,16 +67,21 @@ export function hackathonRoutes(ctx: AppContext) {
   router.delete('/hackathons/:slug/announcements/:id', requireAdmin, announcements.remove);
 
   router.get('/hackathons/:slug/questions', questions.list);
-  router.post('/hackathons/:slug/questions', requireUser, questions.ask);
+  router.post('/hackathons/:slug/questions', writeRateLimit, requireUser, questions.ask);
   router.post('/hackathons/:slug/questions/:id/answer', requireAdmin, questions.answer);
   router.delete('/hackathons/:slug/questions/:id', requireUser, questions.remove);
-  router.put('/hackathons/:slug/questions/:id/upvote', requireUser, questions.upvote);
+  router.put(
+    '/hackathons/:slug/questions/:id/upvote',
+    writeRateLimit,
+    requireUser,
+    questions.upvote,
+  );
   router.delete('/hackathons/:slug/questions/:id/upvote', requireUser, questions.upvote);
 
   router.get('/hackathons/:slug/exports/:kind.csv', requireAdmin, exports.csv);
 
   router.get('/hackathons/:slug/feedback', feedback.summary);
-  router.put('/hackathons/:slug/feedback', requireUser, feedback.upsert);
+  router.put('/hackathons/:slug/feedback', writeRateLimit, requireUser, feedback.upsert);
 
   return router;
 }

@@ -7,7 +7,9 @@ import pinoHttp from 'pino-http';
 import { env, isTest } from './config/env';
 import { projectRoot } from './config/paths';
 import type { AppContext } from './context';
+import { auditAdminActions } from './middlewares/audit';
 import { errorHandler, notFound } from './middlewares/errorHandler';
+import { adminKeyRateLimit } from './middlewares/rateLimit';
 import { session } from './middlewares/session';
 import { apiRouter } from './routes';
 import { logger } from './utils/logger';
@@ -31,6 +33,9 @@ export function createApp(ctx: AppContext): Express {
     app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/api/health' } }));
 
   app.use(session(ctx));
+  // Les mauvaises clés d'organisateur sont freinées avant d'atteindre les routes.
+  app.use('/api', adminKeyRateLimit);
+  app.use('/api', auditAdminActions(ctx));
   app.use('/api', apiRouter(ctx));
   app.use('/api', notFound);
 

@@ -12,6 +12,7 @@ import {
   FolderArchive,
   GitCommitHorizontal,
   Lock,
+  MonitorPlay,
   MessageCircleQuestion,
   Pencil,
   Plus,
@@ -23,7 +24,9 @@ import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { ApiError } from '@/api/client';
 import { QrDialog } from '@/components/hackathon/QrDialog';
+import { AuditLog } from '@/components/admin/AuditLog';
 import { ExportMenu } from '@/components/admin/ExportMenu';
+import { ServerHealth } from '@/components/admin/ServerHealth';
 import { StatusBadge } from '@/components/hackathon/StatusBadge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Menu, MenuItem, MenuLabel, MenuLink, MenuSeparator } from '@/components/ui/menu';
@@ -255,6 +258,11 @@ export function AdminDashboardPage() {
                       <MenuItem onClick={() => setQrFor(h)}>
                         <QrCode /> QR code
                       </MenuItem>
+                      <MenuItem
+                        onClick={() => window.open(`/hackathons/${h.slug}/ecran`, '_blank')}
+                      >
+                        <MonitorPlay /> Mode écran
+                      </MenuItem>
                     </Menu>
                   </div>
                 </Td>
@@ -274,6 +282,10 @@ export function AdminDashboardPage() {
           </tbody>
         </Table>
       </section>
+
+      {stats?.diagnostics && <ServerHealth diagnostics={stats.diagnostics} />}
+
+      <AuditLog enabled={Boolean(stats)} />
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         <div className="rounded-2xl border bg-card p-5">

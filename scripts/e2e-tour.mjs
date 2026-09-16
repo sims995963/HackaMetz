@@ -7,7 +7,7 @@
  *   node scripts/e2e-tour.mjs
  */
 import { spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -16,7 +16,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 const PORT = 3994;
 const BASE = `http://localhost:${PORT}`;
-const ADMIN_KEY = process.env.ADMIN_KEY ?? 'change-moi-avant-le-premier-hackathon';
+// La clé vient du .env de la racine : elle n'est plus écrite en dur nulle part.
+const ADMIN_KEY =
+  process.env.ADMIN_KEY ??
+  (/^ADMIN_KEY=(.*)$/m.exec(readFileSync(join(here, '..', '.env'), 'utf8'))?.[1] ?? '').trim();
 const OUT = join(here, 'shots') + '/';
 mkdirSync(OUT, { recursive: true });
 
@@ -192,6 +195,11 @@ async function main() {
   await page.waitForSelector('h1');
   await page.waitForTimeout(500);
   await shot(page, '15b-duplicate');
+
+  await page.goto(`${BASE}/hackathons/ville-durable/ecran`);
+  await page.waitForSelector('h1');
+  await page.waitForTimeout(900);
+  await shot(page, '15c-ecran', { full: false });
 
   await page.goto(`${BASE}/jury/ville-durable`);
   await page.waitForSelector('h1');

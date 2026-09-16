@@ -187,6 +187,25 @@ export class EvaluationService {
     });
 
     // Disqualifiés en bas, puis par score décroissant ; sans note → après les notés.
+    // À égalité, la règle de départage choisie par l'organisateur tranche.
+    const tieBreak = hackathon.tieBreak ?? { mode: 'publicVote', criterionId: null };
+    const breakTie = (a: (typeof scored)[number], b: (typeof scored)[number]): number => {
+      switch (tieBreak.mode) {
+        case 'publicVote':
+          return (voteCounts[b.submission.id] ?? 0) - (voteCounts[a.submission.id] ?? 0);
+        case 'criterion': {
+          const id = tieBreak.criterionId ?? hackathon.criteria[0]?.id;
+          if (!id) return 0;
+          return (b.byCriterion[id] ?? 0) - (a.byCriterion[id] ?? 0);
+        }
+        case 'submittedAt':
+          return a.submission.submittedAt.localeCompare(b.submission.submittedAt);
+        case 'none':
+        default:
+          return 0;
+      }
+    };
+
     scored.sort((a, b) => {
       const aOut = a.submission.status === 'disqualified';
       const bOut = b.submission.status === 'disqualified';
@@ -194,14 +213,20 @@ export class EvaluationService {
       if (a.score === null && b.score === null) return a.submission.number - b.submission.number;
       if (a.score === null) return 1;
       if (b.score === null) return -1;
-      return b.score - a.score;
+      if (a.score !== b.score) return b.score - a.score;
+      const tie = breakTie(a, b);
+      return tie !== 0 ? tie : a.submission.number - b.submission.number;
     });
 
     let rank = 0;
     let previousScore: number | null | undefined;
     const entries: ResultEntry[] = scored.map((row, index) => {
       const eligible = row.submission.status !== 'disqualified' && row.score !== null;
-      if (eligible && row.score !== previousScore) rank = index + 1;
+      // Rang partagé seulement si le score ET la règle de départage laissent les deux à égalité.
+      const previous = index > 0 ? scored[index - 1] : undefined;
+      const stillTied =
+        previous !== undefined && row.score === previousScore && breakTie(previous, row) === 0;
+      if (eligible && !stillTied) rank = index + 1;
       previousScore = row.score;
       const entryRank = eligible ? rank : scored.length;
       const prize = eligible

@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router';
 import { AdminGate } from '@/components/admin/AdminGate';
 import { AppShell } from '@/components/layout/AppShell';
 import { BrandPage } from '@/pages/BrandPage';
+import { ErrorPage } from '@/pages/ErrorPage';
 import { HackathonPage } from '@/pages/HackathonPage';
 import { HackathonsPage } from '@/pages/HackathonsPage';
 import { KnowledgeBasePage } from '@/pages/KnowledgeBasePage';
@@ -19,6 +20,7 @@ const AdminDashboardPage = lazy(() =>
 );
 const JuryPage = lazy(() => import('@/pages/JuryPage').then(pick('JuryPage')));
 const ResultsPage = lazy(() => import('@/pages/ResultsPage').then(pick('ResultsPage')));
+const ScreenPage = lazy(() => import('@/pages/ScreenPage').then(pick('ScreenPage')));
 const CertificatePage = lazy(() => import('@/pages/CertificatePage').then(pick('CertificatePage')));
 const ProposalRoundFormPage = lazy(() =>
   import('@/pages/admin/ProposalRoundFormPage').then(pick('ProposalRoundFormPage')),
@@ -45,8 +47,12 @@ const adminPage = (Page: ComponentType) => <AdminGate>{lazyPage(Page)}</AdminGat
 
 /** Une entrée par page ; l'espace organisateur est protégé par la clé admin (AdminGate). */
 export const router = createBrowserRouter([
+  // Le mode écran n'a ni menu ni en-tête : il vit en dehors de la coquille.
+  { path: 'hackathons/:slug/ecran', element: lazyPage(ScreenPage), errorElement: <ErrorPage /> },
   {
     element: <AppShell />,
+    // Sans cela, une erreur de rendu laisse une page blanche.
+    errorElement: <ErrorPage />,
     children: [
       { index: true, element: <LandingPage /> },
       { path: 'hackametz', element: <BrandPage /> },

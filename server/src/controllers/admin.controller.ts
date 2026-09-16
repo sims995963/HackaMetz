@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'express';
+import type { AuditListResponse } from '@hackametz/shared';
 import type { AppContext } from '../context';
 
 export function adminController(ctx: AppContext) {
@@ -14,4 +15,17 @@ export function adminController(ctx: AppContext) {
   };
 
   return { listUsers, releaseUser };
+}
+
+export function auditController(ctx: AppContext) {
+  const list: RequestHandler = async (req, res) => {
+    const limit = Math.min(
+      200,
+      Math.max(1, Number.parseInt(String(req.query.limit ?? 50), 10) || 50),
+    );
+    const body: AuditListResponse = await ctx.services.audit.list(limit);
+    res.json(body);
+  };
+
+  return { list };
 }

@@ -14,6 +14,7 @@ import {
   LogIn,
   LogOut,
   MapPin,
+  MonitorPlay,
   MoreHorizontal,
   Pencil,
   QrCode,
@@ -248,6 +249,9 @@ export function HackathonPage() {
                     <MenuLabel>Organisateur</MenuLabel>
                     <MenuItem onClick={() => setQrOpen(true)}>
                       <QrCode /> QR code à projeter
+                    </MenuItem>
+                    <MenuItem onClick={() => window.open(`/hackathons/${h.slug}/ecran`, '_blank')}>
+                      <MonitorPlay /> Mode écran (vidéoprojecteur)
                     </MenuItem>
                     <MenuLink to={`/admin/hackathons/${h.slug}/edit`}>
                       <Pencil /> Modifier l’édition

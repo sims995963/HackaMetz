@@ -142,6 +142,16 @@ export class HackathonStorage {
     };
   }
 
+  /**
+   * Annule un dépôt qui vient d'être écrit (mode strict : secrets détectés).
+   * La version précédente, si elle existe, reste en place.
+   */
+  async removeProjectVersion(stored: StoredArchive): Promise<void> {
+    const sourceDir = this.absolute(stored.sourcePath);
+    await rm(sourceDir, { recursive: true, force: true });
+    await rm(this.absolute(stored.archivePath), { force: true });
+  }
+
   async writeProjectManifest(hackathon: Hackathon, submission: Submission): Promise<void> {
     const projectDir = join(this.absolute(submission.files.sourcePath), '..');
     const manifest = {

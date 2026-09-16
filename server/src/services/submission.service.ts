@@ -76,6 +76,20 @@ export class SubmissionService {
         },
       });
 
+      // Mode strict : on refuse le dépôt et on efface ce qui vient d'être extrait.
+      if (hackathon.submission.rejectSecrets && stored.extract.warnings.length > 0) {
+        await this.storage.removeProjectVersion(stored);
+        throw new AppError(
+          409,
+          'CONFLICT',
+          'Des secrets ont été détectés dans ton dépôt : retire-les puis redépose.',
+          stored.extract.warnings.map((warning) => {
+            const [path, kind] = warning.split(' : ');
+            return { path: path ?? warning, message: kind ?? 'secret probable' };
+          }),
+        );
+      }
+
       const files = {
         sourcePath: stored.sourcePath,
         archivePath: stored.archivePath,

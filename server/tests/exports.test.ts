@@ -49,7 +49,9 @@ describe('Exports CSV', () => {
   it('réservés à l’organisateur, échappés, nommés d’après l’édition', async () => {
     const { slug, token } = await setup(env);
 
-    const anonymous = await request(env.app).get(`/api/hackathons/${slug}/exports/participants.csv`);
+    const anonymous = await request(env.app).get(
+      `/api/hackathons/${slug}/exports/participants.csv`,
+    );
     expect(anonymous.status).toBe(403);
     const asUser = await request(env.app)
       .get(`/api/hackathons/${slug}/exports/participants.csv`)
@@ -77,7 +79,9 @@ describe('Exports CSV', () => {
       .set(admin);
     expect(results.text.split('\r\n')[0]).toContain('rang,projet,auteur');
 
-    const unknown = await request(env.app).get(`/api/hackathons/${slug}/exports/wat.csv`).set(admin);
+    const unknown = await request(env.app)
+      .get(`/api/hackathons/${slug}/exports/wat.csv`)
+      .set(admin);
     expect(unknown.status).toBe(400);
   });
 });
