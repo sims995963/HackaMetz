@@ -55,10 +55,19 @@ npm run build && npm start   # une seule URL : Express sert l'API et le front su
 | `npm run backup -- --every 30`  | Idem, répété toutes les 30 min — à lancer pendant l'événement              |
 | `npm run backup -- --to D:/cle` | Sauvegarde vers un disque externe                                          |
 | `npm run format:check`          | Ce que la CI vérifie (GitHub Actions lance lint, types, tests et build)    |
+| `npm run doctor`                | Contrôle avant événement : Node, clé, build, disque, sauvegardes, port     |
+| `npm run smoke -- <url>`        | Vérifie une instance en ligne (santé, front, API, SSE, espace admin fermé) |
+| `npm run reset`                 | Repart d'une base vide (efface données et projets)                         |
+| `npm run qr -- <url>`           | QR code dans le terminal, à projeter                                       |
+| `npm run restore`               | Liste et restaure une sauvegarde (serveur arrêté)                          |
 
 **Restaurer** : arrêter le serveur, remplacer `server/data` et `server/storage` par les dossiers de
 la sauvegarde choisie, relancer. Le dashboard affiche l'espace disque restant et l'âge de la
 dernière sauvegarde — s'il dépasse six heures, il le signale.
+
+**Mise en ligne 24/7** (machine allumée + tunnel, sans PC de travail) : tout est dans
+[deploy/README.md](deploy/README.md) — scripts d'installation Windows et Linux, tunnel Cloudflare ou
+Tailscale, sauvegardes, checklist du jour J.
 
 La clé d'organisateur n'a pas de valeur par défaut utilisable : le serveur refuse de démarrer sur
 une valeur d'exemple, et les mauvaises tentatives de clé sont freinées (20 par dix minutes).
@@ -129,6 +138,11 @@ Préfixe `/api`. Identité candidat : `Authorization: Bearer <token>` (renvoyé 
 | DELETE | `/hackathons/:slug/questions/:id` | auteur / admin | Retirer une question (l'auteur seulement tant qu'elle est sans réponse) |
 | GET / PUT | `/hackathons/:slug/feedback` | public / inscrit | Synthèse des retours (commentaires pour l'admin) / déposer ou modifier son avis |
 | GET | `/hackathons/:slug/exports/:kind.csv` | admin | Tableur : `participants`, `projets`, `resultats`, `retours` |
+| GET | `/submissions/:id/download.zip` | public | Le code d'un projet en zip (manifest + `source/`) |
+| GET | `/hackathons/:slug/download.zip` | public | Tous les projets d'une édition en zip |
+| GET | `/kb/download.zip` | public | Toute la base de connaissance en zip, avec son index |
+| GET | `/app/source.zip` | admin | Le code de l'application (`git archive` du dernier commit) |
+| — | `hackathon.discord`, `team.discord` | public / membre | Lien d'invitation Discord, liens profonds vers les salons de l'équipe (quand le pont est configuré) |
 
 Les erreurs ont toujours la forme `{ "error": { "code", "message", "details?" } }`.
 
@@ -136,9 +150,21 @@ Les erreurs ont toujours la forme `{ "error": { "code", "message", "details?" } 
 
 Côté navigateur, le dossier déposé est parcouru sans jamais descendre dans `node_modules`, `.git`, `dist`… puis compressé (fflate) et envoyé avec une barre de progression ; un zip est envoyé tel quel. Côté serveur, l'archive est rangée dans `projects/NN-pseudo/archives/vN.zip`, puis extraite dans `source/` en écartant les fichiers sensibles (`.env*`, clés), les liens symboliques et tout chemin qui sortirait du dossier (zip slip), avec des limites de taille décompressée et de nombre de fichiers. Un `project.json` et le `README.md` du hackathon sont régénérés à chaque dépôt.
 
+## Télécharger le code
+
+Un menu « Télécharger » sur la base de connaissance, la page d'un projet et la page des résultats produit une archive zip construite à la volée, en flux : le serveur ne garde jamais l'archive entière en mémoire. Quatre portées — un projet, une édition entière, toute la base de connaissance, et pour l'organisateur le code de l'application lui-même.
+
+Ce qui part, c'est `source/` : le code tel que la plateforme l'expose, après le filtrage de l'extraction. Les archives d'origine (`archives/vN.zip`) ne sont jamais redistribuées, sinon un `.env` écarté au dépôt ressortirait par la porte de derrière. Les éditions en brouillon restent invisibles sans clé d'organisateur. Pour l'application, `git archive` ne connaît que les fichiers suivis : le `.env`, `server/data/` et `server/storage/` restent dehors sans qu'on ait à les lister.
+
 ## Équipes, annonces, temps réel
 
 Quand un hackathon est « en équipe », un inscrit crée une équipe (code d'invitation à 6 caractères) ou en rejoint une ; le dépôt est alors celui de l'équipe (dossier `NN-nom-equipe`), n'importe quel membre peut re-déposer, et l'équipe doit atteindre la taille minimale pour déposer. Les annonces de l'organisateur, les inscriptions, les équipes, les dépôts et les changements de statut sont poussés en Server-Sent Events (`/api/hackathons/:slug/events`) : la page du hackathon se met à jour sans rechargement. Un scan de secrets (clés AWS, tokens, clés privées, mots de passe en clair) prévient le candidat sans bloquer le dépôt. Un QR code de la page du hackathon est disponible pour l'organisateur (kickoff sur place).
+
+## Discord : salons d'équipe temporaires
+
+Configuré (`DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID` — voir `deploy/README.md`), un bot crée sur ton serveur Discord un espace par édition publiée (`#annonces`, `#accueil`, `#general`, un vocal) et, pour chaque équipe, un rôle plus un salon texte et un vocal privés. Le participant tape `/rejoindre <code d'équipe>` dans Discord — le code est celui de HackaMetz, affiché sur la carte de son équipe avec la commande prête à coller — et `/quitter` pour fermer l'accès. Les annonces sont relayées, et 48 h après la fin de l'édition (`DISCORD_GRACE_HOURS`) tout est supprimé : Discord plafonne à 500 salons et 250 rôles par serveur. Une équipe peut demander, au moment du dépôt, que son salon texte soit archivé avec son projet (`journal.md`) ; sans cette case, il disparaît sans être lu.
+
+Les services ne connaissent pas Discord : ils appellent un port `IntegrationHooks` (`server/src/integrations/hooks.ts`), no-op par défaut, que le pont (`server/src/integrations/discord/`) implémente derrière une interface `DiscordGateway` — les tests utilisent un Discord en mémoire. La bibliothèque `discord.js` n'est chargée que si le pont est configuré.
 
 ## Jury, résultats, export
 

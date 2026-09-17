@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Menu as MenuIcon, Search, X } from 'lucide-react';
 import { Outlet, useLocation } from 'react-router';
 import { Brand } from '@/components/layout/Brand';
+import { BackToTop } from '@/components/layout/BackToTop';
 import { CommandPalette } from '@/components/layout/CommandPalette';
 import { MobileTabBar } from '@/components/layout/MobileTabBar';
 import { SidebarContent } from '@/components/layout/Sidebar';
@@ -9,6 +10,8 @@ import { PseudoDialog } from '@/components/session/PseudoDialog';
 import { Button } from '@/components/ui/button';
 import { applyTheme, getStoredTheme, resolveTheme, type Theme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
+
+const NAV_COLLAPSED_KEY = 'hackametz:nav-collapsed';
 
 export interface ShellContext {
   openPseudoDialog: () => void;
@@ -20,6 +23,14 @@ export function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
+  // Rail réduit aux icônes : le choix est conservé d'une visite à l'autre.
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(NAV_COLLAPSED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
   const location = useLocation();
 
   // Le tiroir mobile se referme à chaque navigation.
@@ -51,19 +62,46 @@ export function AppShell() {
   }
 
   const openPseudoDialog = () => setDialogOpen(true);
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem(NAV_COLLAPSED_KEY, next ? '1' : '0');
+      } catch {
+        // navigation privée : le choix ne survivra pas au rechargement, tant pis
+      }
+      return next;
+    });
+  }
   const openCommandPalette = () => setPaletteOpen(true);
 
   return (
     <div className="min-h-svh">
-      <div className="app-bg print:hidden" aria-hidden />
-      <div className="app-grid print:hidden" aria-hidden />
+      {/* Quatre lumières colorées qui dérivent : le fond change de nuance sans jamais bouger vraiment. */}
+      <div className="app-bg print:hidden" aria-hidden>
+        <div className="light light-b" />
+        <div className="light light-v" />
+        <div className="light light-g" />
+        <div className="light light-r" />
+      </div>
+      <div className="app-sweep print:hidden" aria-hidden />
+      <div className="app-sheen print:hidden" aria-hidden />
+      <div className="app-vignette print:hidden" aria-hidden />
+      <div className="app-grain print:hidden" aria-hidden />
 
-      <aside className="glass fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-border/60 print:hidden lg:block">
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-30 hidden border-r border-border/40 bg-sidebar transition-[width] duration-200 print:hidden lg:block',
+          collapsed ? 'w-[76px]' : 'w-[264px]',
+        )}
+      >
         <SidebarContent
           onEnter={openPseudoDialog}
           onSearch={openCommandPalette}
           theme={theme}
           onToggleTheme={toggleTheme}
+          collapsed={collapsed}
+          onToggleCollapsed={toggleCollapsed}
         />
       </aside>
 
@@ -77,7 +115,7 @@ export function AppShell() {
       />
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-[288px] border-r border-border/60 bg-card shadow-pop transition-transform duration-200 lg:hidden',
+          'fixed inset-y-0 left-0 z-50 w-[288px] border-r border-border/40 bg-sidebar shadow-pop transition-transform duration-200 lg:hidden',
           drawerOpen ? 'translate-x-0' : '-translate-x-full',
         )}
         aria-label="Menu"
@@ -106,8 +144,13 @@ export function AppShell() {
         />
       </aside>
 
-      <div className="lg:pl-[264px] print:pl-0">
-        <header className="glass sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/60 px-4 print:hidden lg:hidden">
+      <div
+        className={cn(
+          'transition-[padding] duration-200 print:pl-0',
+          collapsed ? 'lg:pl-[76px]' : 'lg:pl-[264px]',
+        )}
+      >
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/40 bg-sidebar/95 px-4 backdrop-blur-xl print:hidden lg:hidden">
           <Button
             variant="ghost"
             size="icon"
@@ -140,6 +183,7 @@ export function AppShell() {
         </footer>
       </div>
 
+      <BackToTop />
       <MobileTabBar onEnter={openPseudoDialog} />
       <PseudoDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

@@ -1,6 +1,7 @@
 import { readdir, stat, statfs } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Diagnostics } from '@hackametz/shared';
+import type { IntegrationHooks } from '../integrations/hooks';
 import { logger } from '../utils/logger';
 
 const CACHE_MS = 60_000;
@@ -46,10 +47,13 @@ export class DiagnosticsService {
   constructor(
     private readonly dataDir: string,
     private readonly storageDir: string,
+    private readonly hooks: IntegrationHooks,
   ) {}
 
   async read(): Promise<Diagnostics> {
-    if (this.cache && Date.now() - this.cache.at < CACHE_MS) return this.cache.value;
+    if (this.cache && Date.now() - this.cache.at < CACHE_MS) {
+      return { ...this.cache.value, discord: this.hooks.status() };
+    }
 
     const [data, storage, disk, lastBackupAt] = await Promise.all([
       directorySize(this.dataDir),
@@ -65,19 +69,28 @@ export class DiagnosticsService {
       diskFreeBytes: disk.free,
       diskTotalBytes: disk.total,
       lastBackupAt,
+      discord: this.hooks.status(),
     };
     this.cache = { at: Date.now(), value };
-    return value;
+    // L'état du pont Discord change à tout moment : lui, on ne le met pas en cache.
+    return { ...value, discord: this.hooks.status() };
   }
 
+  /**
+   * Sur une instance neuve, le dossier de stockage n'existe pas encore : on remonte
+   * jusqu'à un chemin mesurable plutôt que d'afficher « inconnu » le soir de l'événement.
+   */
   private async disk(): Promise<{ free: number; total: number }> {
-    try {
-      const fs = await statfs(this.storageDir);
-      return { free: fs.bsize * fs.bavail, total: fs.bsize * fs.blocks };
-    } catch (error) {
-      logger.warn({ error }, 'espace disque indisponible');
-      return { free: 0, total: 0 };
+    for (const path of [this.storageDir, this.dataDir, process.cwd()]) {
+      try {
+        const fs = await statfs(path);
+        return { free: fs.bsize * fs.bavail, total: fs.bsize * fs.blocks };
+      } catch {
+        continue;
+      }
     }
+    logger.warn('espace disque indisponible');
+    return { free: 0, total: 0 };
   }
 
   /** Date de la sauvegarde la plus récente produite par `npm run backup`. */

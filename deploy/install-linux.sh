@@ -21,6 +21,9 @@ else
 fi
 chmod 600 "$root/.env"
 
+echo "==> Journal dans un fichier"
+grep -q '^LOG_FILE=' "$root/.env" || echo 'LOG_FILE=server/logs/hackametz.log' >> "$root/.env"
+
 echo "==> Dépendances et build"
 cd "$root"
 npm ci
@@ -36,8 +39,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now hackametz hackametz-backup.timer
 
 sleep 3
-echo "==> Vérification"
-curl -fsS http://localhost:"${PORT:-3001}"/api/health && echo
+echo "==> Contrôle complet"
+npm run doctor || true
 
 cat <<'NEXT'
 

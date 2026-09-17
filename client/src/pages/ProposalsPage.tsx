@@ -160,7 +160,7 @@ function RoundSection({ round, highlight }: { round: ProposalRoundView; highligh
           <h2 className="mt-2 text-2xl font-bold tracking-tight">{round.title}</h2>
           {round.description && (
             <div className="mt-1 max-w-2xl text-muted-foreground">
-              <Markdown>{round.description}</Markdown>
+              <Markdown size="sm">{round.description}</Markdown>
             </div>
           )}
         </div>

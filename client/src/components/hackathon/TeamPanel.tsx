@@ -3,6 +3,7 @@ import type { HackathonWithCounts } from '@hackametz/shared';
 import { Check, Copy, Crown, LogOut, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { ApiError } from '@/api/client';
+import { DiscordCard } from '@/components/hackathon/DiscordCard';
 import { Avatar } from '@/components/session/Avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,6 +119,9 @@ export function TeamPanel({ hackathon: h, registered }: Props) {
                   À donner à tes coéquipiers : ils le saisissent dans « Rejoindre une équipe ».
                 </p>
               </div>
+              {h.discord && (
+                <DiscordCard discord={h.discord} inviteCode={mine.inviteCode} team={mine.discord} />
+              )}
               <Button
                 type="button"
                 variant="outline"

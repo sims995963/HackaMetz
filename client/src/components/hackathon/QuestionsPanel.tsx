@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { ApiError } from '@/api/client';
 import { Markdown } from '@/components/markdown/Markdown';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Textarea } from '@/components/ui/textarea';
 import {
   useAnswerQuestion,
@@ -61,9 +62,12 @@ export function QuestionsPanel({ slug, closed, onEnter }: Props) {
               ))}
             </ul>
           ) : (
-            <p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-              Aucune question en attente.
-            </p>
+            <EmptyState
+              icon={MessageCircleQuestion}
+              title="Aucune question en attente"
+              description="Les questions des participants arrivent ici, la plus soutenue en premier."
+              compact
+            />
           )}
         </section>
 
@@ -189,7 +193,7 @@ function QuestionCard({ slug, question: q }: { slug: string; question: QuestionV
           <div className="mt-3 flex gap-2 rounded-xl border-l-2 border-l-[color:var(--brand-1)] bg-muted/50 px-4 py-3">
             <CornerDownRight className="mt-0.5 size-4 shrink-0 text-brand-1" />
             <div className="min-w-0 text-sm">
-              <Markdown>{q.answer.content}</Markdown>
+              <Markdown size="sm">{q.answer.content}</Markdown>
               <p className="mt-1 text-xs text-muted-foreground">
                 {q.answer.byPseudo} · {fromNow(q.answer.at)}
               </p>

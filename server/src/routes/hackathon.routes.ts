@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { AppContext } from '../context';
 import { announcementController } from '../controllers/announcement.controller';
+import { downloadController } from '../controllers/download.controller';
 import { evaluationController } from '../controllers/evaluation.controller';
 import { exportController } from '../controllers/export.controller';
 import { feedbackController } from '../controllers/feedback.controller';
@@ -11,7 +12,7 @@ import { submissionController } from '../controllers/submission.controller';
 import { teamController } from '../controllers/team.controller';
 import { voteController } from '../controllers/vote.controller';
 import { requireAdmin, requireUser } from '../middlewares/guards';
-import { uploadRateLimit, writeRateLimit } from '../middlewares/rateLimit';
+import { downloadRateLimit, uploadRateLimit, writeRateLimit } from '../middlewares/rateLimit';
 import { uploadArchive } from '../middlewares/upload';
 import { hackathonEvents } from '../realtime/sse';
 
@@ -27,6 +28,7 @@ export function hackathonRoutes(ctx: AppContext) {
   const questions = questionController(ctx);
   const feedback = feedbackController(ctx);
   const exports = exportController(ctx);
+  const downloads = downloadController(ctx);
 
   router.get('/hackathons', hackathons.list);
   router.post('/hackathons', requireAdmin, hackathons.create);
@@ -79,6 +81,7 @@ export function hackathonRoutes(ctx: AppContext) {
   router.delete('/hackathons/:slug/questions/:id/upvote', requireUser, questions.upvote);
 
   router.get('/hackathons/:slug/exports/:kind.csv', requireAdmin, exports.csv);
+  router.get('/hackathons/:slug/download.zip', downloadRateLimit, downloads.edition);
 
   router.get('/hackathons/:slug/feedback', feedback.summary);
   router.put('/hackathons/:slug/feedback', writeRateLimit, requireUser, feedback.upsert);

@@ -16,6 +16,9 @@ server/data/*
 server/storage/*
 !server/storage/.gitkeep
 
+# Journaux du serveur
+server/logs/
+
 # Sauvegardes locales (npm run backup)
 server/backups/
 

@@ -7,7 +7,19 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f4f5f9;
+  --background: #f3f5fb;
+  /* Rail de navigation : une surface distincte du contenu, plus froide et plus dense. */
+  --sidebar: #dae2f0;
+  /* Lumière venue du haut du canevas. */
+  --sheen: rgb(255 255 255 / 0.22);
+  /* La composante verte du mélange RGB ; les trois autres viennent de la marque. */
+  --light-green: #12b981;
+  --light-opacity: 0.6;
+  --sweep: rgb(255 255 255 / 0.28);
+  --light-blend: multiply;
+  /* Liseré clair sur l’arête haute des surfaces flottantes (menus, palette). */
+  --surface-highlight: rgb(255 255 255 / 0.85);
+  --vignette: color-mix(in oklab, var(--foreground) 5%, transparent);
   --foreground: #141a2a;
   --card: #ffffff;
   --card-foreground: #141a2a;
@@ -41,9 +53,9 @@
   );
 
   /* Halos du fond d'application */
-  --glow-1: color-mix(in oklab, var(--brand-1) 16%, transparent);
-  --glow-2: color-mix(in oklab, var(--brand-2) 13%, transparent);
-  --glow-3: color-mix(in oklab, var(--brand-3) 14%, transparent);
+  --glow-1: color-mix(in oklab, var(--brand-1) 32%, transparent);
+  --glow-2: color-mix(in oklab, var(--brand-2) 26%, transparent);
+  --glow-3: color-mix(in oklab, var(--brand-3) 24%, transparent);
   --shadow-color: 24 32 64;
 
   --hl-comment: #6b7280;
@@ -56,9 +68,17 @@
 }
 
 .dark {
-  --background: #0b0f19;
+  --background: #05080f;
+  --sidebar: #0b1120;
+  --sheen: rgb(255 255 255 / 0.04);
+  --light-green: #0ea371;
+  --light-opacity: 0.52;
+  --sweep: rgb(255 255 255 / 0.035);
+  --light-blend: screen;
+  --surface-highlight: rgb(255 255 255 / 0.07);
+  --vignette: rgb(0 0 0 / 0.45);
   --foreground: #e7eaf2;
-  --card: #121827;
+  --card: #0f1626;
   --card-foreground: #e7eaf2;
   --popover: #161d2e;
   --popover-foreground: #e7eaf2;
@@ -112,6 +132,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
   --color-brand-1: var(--brand-1);
   --color-brand-2: var(--brand-2);
   --color-brand-3: var(--brand-3);
@@ -185,6 +206,9 @@
     color-scheme: dark;
   }
   body {
+    /* Les nappes du fond débordent volontairement : « clip » évite tout défilement
+       horizontal sans créer de conteneur de défilement (les éléments collants survivent). */
+    overflow-x: clip;
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'ss01', 'cv11';
   }
@@ -236,32 +260,129 @@
 /* Fond de l'application : halos fixes derrière tout le contenu. */
 @utility app-bg {
   position: fixed;
-  inset: 0;
-  z-index: -1;
+  /* Débordement volontaire : les lumières n'ont pas de bord visible à l'écran. */
+  inset: -25%;
+  z-index: -2;
   pointer-events: none;
-  background-image:
-    radial-gradient(52% 44% at 12% -6%, var(--glow-1), transparent 70%),
-    radial-gradient(40% 36% at 92% 6%, var(--glow-2), transparent 70%),
-    radial-gradient(48% 40% at 68% 108%, var(--glow-3), transparent 70%);
+  overflow: hidden;
 }
-@utility app-grid {
+
+/*
+ * Une source lumineuse. Chacune a sa couleur, sa taille, sa position et son propre rythme :
+ * c'est leur recouvrement qui fait varier la couleur du fond au fil du temps.
+ */
+@utility light {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: var(--light-opacity, 0.5);
+  background-image: radial-gradient(circle at center, var(--light-color), transparent 70%);
+  /* La dérive déplace la lumière ; le cycle lui fait parcourir toute la roue des couleurs
+     (le vert devient jaune, puis rouge, puis magenta…). Les décalages maintiennent les
+     quatre sources à distance sur la roue : le mélange reste toujours contrasté. */
+  animation:
+    light-drift var(--light-duration, 52s) ease-in-out infinite alternate,
+    hue-cycle var(--hue-duration, 150s) linear infinite;
+  animation-delay: var(--light-delay, 0s), var(--hue-delay, 0s);
+  mix-blend-mode: var(--light-blend, normal);
+  will-change: transform, opacity, filter;
+}
+
+@utility light-b {
+  --light-color: color-mix(in oklab, var(--brand-1) 70%, transparent);
+  inset-block-start: -8%;
+  inset-inline-start: -6%;
+  width: 62vw;
+  height: 62vw;
+  --light-duration: 46s;
+  --hue-delay: 0s;
+}
+
+@utility light-v {
+  --light-color: color-mix(in oklab, var(--brand-2) 62%, transparent);
+  inset-block-start: -14%;
+  inset-inline-end: -10%;
+  width: 58vw;
+  height: 58vw;
+  --light-duration: 58s;
+  --light-delay: -12s;
+  --hue-delay: -37s;
+}
+
+@utility light-g {
+  --light-color: color-mix(in oklab, var(--light-green) 55%, transparent);
+  inset-block-end: -18%;
+  inset-inline-start: 18%;
+  width: 66vw;
+  height: 66vw;
+  --light-duration: 64s;
+  --light-delay: -26s;
+  --hue-delay: -75s;
+}
+
+@utility light-r {
+  --light-color: color-mix(in oklab, var(--brand-3) 58%, transparent);
+  inset-block-end: -12%;
+  inset-inline-end: 4%;
+  width: 52vw;
+  height: 52vw;
+  --light-duration: 50s;
+  --light-delay: -34s;
+  --hue-delay: -112s;
+}
+
+/*
+ * Surface flottante : un aplat blanc paraît plat et bon marché. Un dégradé imperceptible,
+ * un liseré de lumière sur l'arête haute et une ombre étagée donnent de l'épaisseur.
+ */
+@utility floating-surface {
+  background-image: linear-gradient(
+    180deg,
+    var(--popover) 0%,
+    color-mix(in oklab, var(--popover) 90%, var(--muted)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 var(--surface-highlight),
+    0 1px 2px rgb(var(--shadow-color) / 0.06),
+    0 12px 28px -8px rgb(var(--shadow-color) / 0.18),
+    0 30px 60px -20px rgb(var(--shadow-color) / 0.28);
+}
+
+/* Balayage : une bande de lumière très large qui traverse lentement la surface. */
+@utility app-sweep {
+  position: fixed;
+  inset: -40% -60%;
+  z-index: -2;
+  pointer-events: none;
+  background-image: linear-gradient(100deg, transparent 38%, var(--sweep) 50%, transparent 62%);
+  animation: sweep 38s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Vignette : les bords s'assombrissent à peine, le centre respire. */
+@utility app-vignette {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in oklab, var(--foreground) 5%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in oklab, var(--foreground) 5%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black 20%, transparent 75%);
+  background-image: radial-gradient(120% 90% at 50% 40%, transparent 55%, var(--vignette));
+}
+
+/* Voile de lumière venu du haut, posé par-dessus les sources. */
+@utility app-sheen {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: linear-gradient(180deg, var(--sheen), transparent 42%);
+}
+@utility app-grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
 }
 
 /* Hero sombre avec halos de couleur : lisible dans les deux thèmes, le texte y est toujours blanc. */
@@ -284,12 +405,11 @@
       transparent 60%
     );
 }
+/* Voile posé sur les surfaces sombres : une lumière douce plutôt qu'un quadrillage. */
 @utility grid-fade {
   background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    radial-gradient(60% 45% at 18% 0%, rgb(255 255 255 / 0.1), transparent 70%),
+    radial-gradient(45% 40% at 86% 8%, rgb(255 255 255 / 0.06), transparent 72%);
 }
 /* Orbe flottant (hero) */
 @utility orb {
@@ -319,6 +439,14 @@
   transform: translateY(-50%);
   border-radius: 0 4px 4px 0;
   background-image: var(--gradient-brand);
+}
+
+/* Sur petit écran, on garde les lumières mais pas la rotation de teinte :
+   un filtre animé sur toute la surface coûte cher à un téléphone. */
+@media (max-width: 768px) {
+  .app-sweep {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -391,6 +519,51 @@
     page-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both,
     breathe 6s ease-in-out 0.7s infinite;
 }
+@keyframes light-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: calc(var(--light-opacity, 0.5) * 0.75);
+  }
+  50% {
+    transform: translate3d(6%, -4%, 0) scale(1.12);
+    opacity: var(--light-opacity, 0.5);
+  }
+  100% {
+    transform: translate3d(-5%, 5%, 0) scale(0.96);
+    opacity: calc(var(--light-opacity, 0.5) * 0.85);
+  }
+}
+
+@keyframes hue-cycle {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: translate3d(-12%, -6%, 0);
+  }
+  to {
+    transform: translate3d(12%, 6%, 0);
+  }
+}
+
+@keyframes aurora {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(1.5%, -1.5%, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(-1.5%, 1%, 0) scale(1.03);
+  }
+}
+
 @keyframes breathe {
   0%,
   100% {
@@ -398,6 +571,170 @@
   }
   50% {
     transform: scale(1.015);
+  }
+}
+
+/* ---------------------------------------------------------------- Texte long
+   Règlement, annonces, README des projets : le confort de lecture se joue ici.
+   Mesure d'environ 68 caractères, interlignage généreux, hiérarchie nette. */
+@utility prose-hm {
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+
+  & > *:first-child {
+    margin-top: 0;
+  }
+  & > *:last-child {
+    margin-bottom: 0;
+  }
+
+  & p,
+  & ul,
+  & ol,
+  & blockquote {
+    margin-block: 0.85em;
+    max-width: 68ch;
+  }
+
+  & h1,
+  & h2,
+  & h3,
+  & h4 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    margin-block: 1.6em 0.5em;
+    text-wrap: balance;
+  }
+  & h1 {
+    font-size: 1.5rem;
+  }
+  & h2 {
+    font-size: 1.25rem;
+  }
+  & h3 {
+    font-size: 1.0625rem;
+  }
+  & h4 {
+    font-size: 1rem;
+  }
+
+  & a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklab, var(--primary) 35%, transparent);
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.15s;
+  }
+  & a:hover {
+    text-decoration-color: var(--primary);
+  }
+
+  & strong {
+    font-weight: 600;
+  }
+
+  & ul,
+  & ol {
+    padding-left: 1.35em;
+  }
+  & ul {
+    list-style: disc;
+  }
+  & ol {
+    list-style: decimal;
+  }
+  & li {
+    margin-block: 0.3em;
+  }
+  & li::marker {
+    color: var(--muted-foreground);
+  }
+  & li > ul,
+  & li > ol {
+    margin-block: 0.3em;
+  }
+
+  & blockquote {
+    border-left: 2px solid color-mix(in oklab, var(--brand-1) 45%, var(--border));
+    padding-left: 1em;
+    color: var(--muted-foreground);
+    font-style: normal;
+  }
+
+  & code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--muted);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+  & pre {
+    margin-block: 1.1em;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--muted) 60%, transparent);
+    padding: 0.9rem 1rem;
+    font-size: 0.85em;
+    line-height: 1.6;
+  }
+  & pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  & table {
+    margin-block: 1.1em;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+  }
+  & th,
+  & td {
+    border: 1px solid var(--border);
+    padding: 0.45rem 0.65rem;
+    text-align: left;
+  }
+  & th {
+    background: color-mix(in oklab, var(--muted) 70%, transparent);
+    font-weight: 600;
+  }
+
+  & hr {
+    margin-block: 1.8em;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  & img {
+    max-width: 100%;
+    border-radius: 12px;
+  }
+}
+
+/* Version resserrée : panneaux latéraux, cartes, commentaires. */
+@utility prose-hm-sm {
+  font-size: 0.875rem;
+  line-height: 1.65;
+
+  & h1 {
+    font-size: 1.25rem;
+  }
+  & h2 {
+    font-size: 1.0625rem;
+  }
+  & h3 {
+    font-size: 0.9375rem;
+  }
+  & p,
+  & ul,
+  & ol,
+  & blockquote {
+    margin-block: 0.7em;
   }
 }
 

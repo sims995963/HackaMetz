@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { discordStatusSchema } from './discord.schema';
 
 /** Codes d'erreur renvoyés par l'API — le client s'en sert pour adapter ses messages. */
 export const API_ERROR_CODES = [
@@ -37,6 +38,7 @@ export const diagnosticsSchema = z.object({
   diskTotalBytes: z.number().int(),
   /** Dernière sauvegarde trouvée dans `server/backups` (null si aucune). */
   lastBackupAt: z.iso.datetime().nullable(),
+  discord: discordStatusSchema,
 });
 export type Diagnostics = z.infer<typeof diagnosticsSchema>;
 
@@ -44,6 +46,7 @@ export const healthResponseSchema = z.object({
   status: z.literal('ok'),
   version: z.string(),
   uptimeSeconds: z.number(),
-  diagnostics: diagnosticsSchema,
+  /** Réservé à l'organisateur : la place disque d'une machine ne regarde pas le public. */
+  diagnostics: diagnosticsSchema.nullable().default(null),
 });
 export type HealthResponse = z.infer<typeof healthResponseSchema>;

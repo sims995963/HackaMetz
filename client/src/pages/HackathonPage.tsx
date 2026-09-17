@@ -14,6 +14,7 @@ import {
   LogIn,
   LogOut,
   MapPin,
+  MessageCircle,
   MonitorPlay,
   MoreHorizontal,
   Pencil,
@@ -223,6 +224,11 @@ export function HackathonPage() {
                 )}
               >
                 <MenuLabel>Édition #{h.code}</MenuLabel>
+                {h.discord?.inviteUrl && (
+                  <MenuItem onClick={() => window.open(h.discord!.inviteUrl!, '_blank')}>
+                    <MessageCircle /> Serveur Discord
+                  </MenuItem>
+                )}
                 {resultsVisible && (
                   <MenuLink to={`/hackathons/${h.slug}/results`}>
                     <Trophy /> Résultats
@@ -277,11 +283,11 @@ export function HackathonPage() {
       </header>
 
       {/* ------------------------------------------------------------ Onglets */}
-      <div className="glass sticky top-14 z-20 -mx-1 rounded-xl border border-border/60 px-2 lg:top-3">
+      <div className="sticky top-14 z-20 -mx-1 px-1 lg:top-3">
         <Tabs
           value={tab}
           onChange={setTab}
-          className="border-b-0"
+          className="backdrop-blur-xl"
           tabs={[
             { value: 'about', label: 'Présentation' },
             {

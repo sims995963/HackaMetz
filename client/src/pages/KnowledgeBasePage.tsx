@@ -9,12 +9,13 @@ import {
   Layers,
   Search,
   SearchX,
-  SlidersHorizontal,
   Trophy,
   Users,
   X,
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
+import { DownloadMenu } from '@/components/hackathon/DownloadMenu';
+import { EditionPicker } from '@/components/hackathon/EditionPicker';
 import { StatusBadge } from '@/components/hackathon/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,20 +40,21 @@ const SORT_ICONS: Record<Sort, typeof Clock> = { recent: Clock, title: ArrowDown
 export function KnowledgeBasePage() {
   const [params, setParams] = useSearchParams();
   const urlQuery = params.get('q') ?? '';
+  /** La recherche globale renvoie vers /kb?tech=… : le filtre par techno vit dans l'URL. */
+  const urlTech = params.get('tech') ?? '';
   const [q, setQ] = useState(urlQuery);
-  const [tech, setTech] = useState('');
   const [hackathon, setHackathon] = useState('');
   const [sort, setSort] = useState<Sort>('recent');
   useEffect(() => setQ(urlQuery), [urlQuery]);
 
   const { data, isPending } = useKbProjects({
     q: q.trim() || undefined,
-    tech: tech || undefined,
+    tech: urlTech || undefined,
     hackathon: hackathon || undefined,
   });
   const { data: hackathons } = useHackathons();
   const editions = (hackathons ?? []).filter((h) => h.status !== 'draft');
-  const filtered = Boolean(q.trim() || tech || hackathon);
+  const filtered = Boolean(q.trim() || urlTech || hackathon);
 
   const projects = useMemo(() => {
     const list = [...(data?.projects ?? [])];
@@ -62,15 +64,24 @@ export function KnowledgeBasePage() {
   }, [data, sort]);
 
   const technologies = data?.technologies ?? [];
-  const topTech = technologies.slice(0, 10);
-  const moreTech = technologies.slice(10);
+  /** Le menu de téléchargement propose l'édition filtrée, quand il y en a une. */
+  const selected = editions.find((h) => h.slug === hackathon);
+  const selectedEdition = selected
+    ? { slug: selected.slug, code: selected.code, title: selected.title }
+    : null;
   const SortIcon = SORT_ICONS[sort];
 
   function clear() {
     setQ('');
-    setTech('');
     setHackathon('');
-    if (params.has('q')) setParams({});
+    if (params.has('q') || params.has('tech')) setParams({});
+  }
+
+  /** Retire la techno sans toucher au reste des filtres. */
+  function clearTech() {
+    const next = new URLSearchParams(params);
+    next.delete('tech');
+    setParams(next);
   }
 
   return (
@@ -126,65 +137,22 @@ export function KnowledgeBasePage() {
         </div>
       </section>
 
-      {/* ------------------------------------------------------------ Filtres */}
-      <section className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <SlidersHorizontal className="size-3.5" /> Technos
-          </span>
-          <Chip active={tech === ''} onClick={() => setTech('')}>
-            Toutes
-          </Chip>
-          {topTech.map((t) => (
-            <Chip key={t} active={tech === t} onClick={() => setTech(tech === t ? '' : t)}>
-              {t}
-            </Chip>
-          ))}
-          {moreTech.length > 0 && (
-            <Menu
-              trigger={({ open, toggle }) => (
-                <Chip active={moreTech.includes(tech)} onClick={toggle} aria-expanded={open}>
-                  {moreTech.includes(tech) ? tech : `+ ${moreTech.length} autres`}
-                </Chip>
-              )}
-            >
-              <MenuLabel>Autres technos</MenuLabel>
-              <div className="max-h-64 overflow-y-auto">
-                {moreTech.map((t) => (
-                  <MenuItem key={t} onClick={() => setTech(t)}>
-                    {t}
-                  </MenuItem>
-                ))}
-              </div>
-            </Menu>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <FolderArchive className="size-3.5" /> Édition
-          </span>
-          <Chip active={hackathon === ''} onClick={() => setHackathon('')}>
-            Toutes
-          </Chip>
-          {editions.map((h) => (
-            <Chip
-              key={h.id}
-              active={hackathon === h.slug}
-              onClick={() => setHackathon(hackathon === h.slug ? '' : h.slug)}
-              color={h.coverColor}
-            >
-              #{h.code} {h.title}
-            </Chip>
-          ))}
-        </div>
-      </section>
-
       {/* ------------------------------------------------------------ Projets */}
       <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-baseline gap-3">
             <h2 className="text-xl font-semibold tracking-tight">Projets</h2>
             <span className="font-mono text-xs text-muted-foreground">{projects.length}</span>
+            {urlTech && (
+              <button
+                type="button"
+                onClick={clearTech}
+                className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40"
+              >
+                <Layers className="size-3 text-muted-foreground" /> {urlTech}
+                <X className="size-3 text-muted-foreground" />
+              </button>
+            )}
             {filtered && (
               <button
                 type="button"
@@ -195,27 +163,31 @@ export function KnowledgeBasePage() {
               </button>
             )}
           </div>
-          <Menu
-            trigger={({ open, toggle }) => (
-              <Button variant="outline" size="sm" aria-expanded={open} onClick={toggle}>
-                <SortIcon /> {SORT_LABELS[sort]}
-              </Button>
-            )}
-          >
-            <MenuLabel>Trier</MenuLabel>
-            {(Object.keys(SORT_LABELS) as Sort[]).map((s) => {
-              const Icon = SORT_ICONS[s];
-              return (
-                <MenuItem
-                  key={s}
-                  onClick={() => setSort(s)}
-                  className={cn(sort === s && 'bg-accent')}
-                >
-                  <Icon /> {SORT_LABELS[s]}
-                </MenuItem>
-              );
-            })}
-          </Menu>
+          <div className="flex flex-wrap items-center gap-2">
+            <EditionPicker editions={editions} value={hackathon} onChange={setHackathon} />
+            <DownloadMenu size="sm" edition={selectedEdition} />
+            <Menu
+              trigger={({ open, toggle }) => (
+                <Button variant="outline" size="sm" aria-expanded={open} onClick={toggle}>
+                  <SortIcon /> {SORT_LABELS[sort]}
+                </Button>
+              )}
+            >
+              <MenuLabel>Trier</MenuLabel>
+              {(Object.keys(SORT_LABELS) as Sort[]).map((s) => {
+                const Icon = SORT_ICONS[s];
+                return (
+                  <MenuItem
+                    key={s}
+                    onClick={() => setSort(s)}
+                    className={cn(sort === s && 'bg-accent')}
+                  >
+                    <Icon /> {SORT_LABELS[s]}
+                  </MenuItem>
+                );
+              })}
+            </Menu>
+          </div>
         </div>
 
         {isPending ? (
@@ -310,38 +282,6 @@ function Stat({
       <dd className="mt-2 font-display text-2xl font-bold tabular-nums">{value}</dd>
       <dt className="text-xs text-muted-foreground">{label}</dt>
     </div>
-  );
-}
-
-function Chip({
-  active,
-  color,
-  className,
-  children,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { active: boolean; color?: string }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      className={cn(
-        'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-all',
-        active
-          ? 'border-transparent bg-brand text-white shadow-soft'
-          : 'border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground',
-        className,
-      )}
-      {...props}
-    >
-      {color && (
-        <span
-          className={cn('size-2 rounded-full', active && 'ring-2 ring-white/60')}
-          style={{ background: color }}
-          aria-hidden
-        />
-      )}
-      {children}
-    </button>
   );
 }
 

@@ -1,6 +1,7 @@
 import type {
   Announcement,
   AuditEntry,
+  DiscordLink,
   Evaluation,
   Feedback,
   Hackathon,
@@ -15,6 +16,7 @@ import type {
 import {
   announcementSchema,
   auditEntrySchema,
+  discordLinkSchema,
   evaluationSchema,
   feedbackSchema,
   hackathonSchema,
@@ -51,6 +53,7 @@ export interface Repositories {
   proposalVotes: Repository<ProposalVote>;
   questions: Repository<Question>;
   feedback: Repository<Feedback>;
+  discordLinks: Repository<DiscordLink>;
 }
 
 /**
@@ -76,6 +79,7 @@ export function createRepositories(dataDir: string): Repositories {
     proposalVotes: new JsonRepository<ProposalVote>(dataDir, 'proposal-votes', proposalVoteSchema),
     questions: new JsonRepository<Question>(dataDir, 'questions', questionSchema),
     feedback: new JsonRepository<Feedback>(dataDir, 'feedback', feedbackSchema),
+    discordLinks: new JsonRepository<DiscordLink>(dataDir, 'discord-links', discordLinkSchema),
   };
 }
 

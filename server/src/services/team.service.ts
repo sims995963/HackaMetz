@@ -1,6 +1,7 @@
 import type { Hackathon, Team, TeamMine, TeamPublic } from '@hackametz/shared';
 import { createTeam } from '../models/team.model';
 import type { UserRecord } from '../models/user.model';
+import type { IntegrationHooks } from '../integrations/hooks';
 import type { EventBus } from '../realtime/eventBus';
 import type { Repositories } from '../repositories';
 import { AppError } from '../utils/errors';
@@ -13,6 +14,7 @@ export class TeamService {
   constructor(
     private readonly repos: Repositories,
     private readonly events: EventBus,
+    private readonly hooks: IntegrationHooks,
   ) {}
 
   async create(hackathon: Hackathon, user: UserRecord, name: string): Promise<TeamMine> {
@@ -25,6 +27,7 @@ export class TeamService {
     const team = await this.repos.teams.insert(createTeam(hackathon.id, name, user.id));
     await this.setRegistrationTeam(hackathon.id, user.id, team.id);
     this.events.emit('team', hackathon.slug, `${user.pseudo} a créé l’équipe « ${team.name} »`);
+    await this.hooks.teamCreated(hackathon, team);
     return this.toMine(team);
   }
 
@@ -60,6 +63,7 @@ export class TeamService {
         throw AppError.conflict('L’équipe a déposé un projet : elle ne peut pas être dissoute');
       }
       await this.repos.teams.remove(team.id);
+      await this.hooks.teamDissolved(hackathon, team);
     } else {
       await this.repos.teams.update(team.id, {
         memberIds: remaining,
@@ -68,6 +72,7 @@ export class TeamService {
     }
     await this.setRegistrationTeam(hackathon.id, user.id, null);
     this.events.emit('team', hackathon.slug, `${user.pseudo} a quitté l’équipe « ${team.name} »`);
+    if (remaining.length > 0) await this.hooks.memberLeft(hackathon, team, user);
   }
 
   teamOf(hackathonId: string, userId: string): Promise<Team | undefined> {
@@ -91,7 +96,11 @@ export class TeamService {
 
   async toMine(team: Team): Promise<TeamMine> {
     const users = await this.repos.users.all();
-    return { ...this.toPublic(team, users), inviteCode: team.inviteCode };
+    return {
+      ...this.toPublic(team, users),
+      inviteCode: team.inviteCode,
+      discord: await this.hooks.teamInfo(team),
+    };
   }
 
   /** Pseudos des membres, dans l'ordre d'arrivée. */

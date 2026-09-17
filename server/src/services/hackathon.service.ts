@@ -16,6 +16,7 @@ import {
   datesAreOrdered,
   hackathonSchema,
 } from '@hackametz/shared';
+import type { IntegrationHooks } from '../integrations/hooks';
 import { createHackathon } from '../models/hackathon.model';
 import type { EventBus } from '../realtime/eventBus';
 import type { Repositories } from '../repositories';
@@ -38,6 +39,7 @@ export class HackathonService {
     private readonly storage: HackathonStorage,
     private readonly events: EventBus,
     private readonly proposals: ProposalService,
+    private readonly hooks: IntegrationHooks,
   ) {}
 
   /** Du plus récent au plus ancien, avec les compteurs. */
@@ -244,6 +246,7 @@ export class HackathonService {
       updated.slug,
       `Le hackathon passe en « ${HACKATHON_STATUS_LABELS[status]} »`,
     );
+    await this.hooks.editionStatusChanged(updated);
     return updated;
   }
 
@@ -258,6 +261,7 @@ export class HackathonService {
         participants: registrations.filter((r) => r.hackathonId === h.id).length,
         submissions: submissions.filter((s) => s.hackathonId === h.id).length,
       },
+      discord: this.hooks.editionInfo(h),
     }));
   }
 

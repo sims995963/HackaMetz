@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { discordInfoSchema } from './discord.schema';
 import {
   DEFAULT_LICENSE,
   DEFAULT_TIMEZONE,
@@ -209,7 +210,11 @@ export const hackathonCountsSchema = z.object({
 export type HackathonCounts = z.infer<typeof hackathonCountsSchema>;
 
 /** Ce que l'API renvoie : l'entité + des compteurs calculés. */
-export const hackathonWithCountsSchema = hackathonSchema.extend({ counts: hackathonCountsSchema });
+export const hackathonWithCountsSchema = hackathonSchema.extend({
+  counts: hackathonCountsSchema,
+  /** Présent quand le pont Discord est configuré. */
+  discord: discordInfoSchema.nullable().default(null),
+});
 export type HackathonWithCounts = z.infer<typeof hackathonWithCountsSchema>;
 
 export const hackathonListResponseSchema = z.object({

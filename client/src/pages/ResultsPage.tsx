@@ -2,6 +2,7 @@ import type { ResultEntry } from '@hackametz/shared';
 import { TIE_BREAK_LABELS } from '@hackametz/shared';
 import { ArrowLeft, Award, Heart, MessageSquareQuote, Trophy, Users } from 'lucide-react';
 import { Link, useParams } from 'react-router';
+import { DownloadMenu } from '@/components/hackathon/DownloadMenu';
 import { ExportMenu } from '@/components/admin/ExportMenu';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatusBadge } from '@/components/hackathon/StatusBadge';
@@ -65,7 +66,14 @@ export function ResultsPage() {
             )}
           </div>
         </div>
-        {isAdmin && <ExportMenu slug={h.slug} />}
+        <div className="flex flex-wrap items-center gap-2">
+          <DownloadMenu
+            edition={{ slug: h.slug, code: h.code, title: h.title }}
+            knowledgeBase={false}
+            label="Télécharger les projets"
+          />
+          {isAdmin && <ExportMenu slug={h.slug} />}
+        </div>
       </header>
 
       {results && !results.published && !isAdmin && (

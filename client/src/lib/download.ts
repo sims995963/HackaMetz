@@ -11,7 +11,14 @@ export async function downloadApiFile(path: string, fallbackName: string): Promi
   if (adminKey) headers['X-Admin-Key'] = adminKey;
 
   const response = await fetch(`/api${path}`, { headers });
-  if (!response.ok) throw new Error(`Téléchargement impossible (${response.status})`);
+  if (!response.ok) {
+    // L'API explique pourquoi (édition vide, archive trop lourde, git absent) : autant le dire.
+    const detail = await response
+      .json()
+      .then((body: { error?: { message?: string } }) => body.error?.message)
+      .catch(() => undefined);
+    throw new Error(detail ?? `Téléchargement impossible (${response.status})`);
+  }
 
   const disposition = response.headers.get('Content-Disposition') ?? '';
   const match = /filename="([^"]+)"/.exec(disposition);

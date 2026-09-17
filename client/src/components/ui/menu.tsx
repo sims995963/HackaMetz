@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
+import { useAnchoredPosition } from '@/hooks/useAnchoredPosition';
 import { cn } from '@/lib/utils';
 
 interface MenuContextValue {
@@ -23,33 +24,10 @@ interface MenuProps {
  */
 export function Menu({ trigger, children, align = 'end', side = 'bottom', className }: MenuProps) {
   const [open, setOpen] = React.useState(false);
-  const [position, setPosition] = React.useState<React.CSSProperties>({});
   const rootRef = React.useRef<HTMLDivElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const close = React.useCallback(() => setOpen(false), []);
-
-  // Rendu dans un portail, positionné en `fixed` à partir du déclencheur : jamais rogné par
-  // un conteneur défilant (tableau, carte). Suit le déclencheur au défilement.
-  React.useLayoutEffect(() => {
-    if (!open) return;
-    const update = () => {
-      const rect = rootRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const style: React.CSSProperties = { position: 'fixed' };
-      if (align === 'end') style.right = Math.max(8, window.innerWidth - rect.right);
-      else style.left = rect.left;
-      if (side === 'bottom') style.top = rect.bottom + 8;
-      else style.bottom = Math.max(8, window.innerHeight - rect.top + 8);
-      setPosition(style);
-    };
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
-    };
-  }, [open, align, side]);
+  const position = useAnchoredPosition(rootRef, open, { align, side, panelRef });
 
   React.useEffect(() => {
     if (!open) return;
@@ -98,7 +76,7 @@ export function Menu({ trigger, children, align = 'end', side = 'bottom', classN
               ref={panelRef}
               role="menu"
               style={position}
-              className="z-50 min-w-52 rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-pop animate-menu-in"
+              className="floating-surface animate-menu-in z-50 min-w-56 rounded-[22px] border border-border/60 p-2 text-popover-foreground"
             >
               {children}
             </div>
@@ -110,7 +88,7 @@ export function Menu({ trigger, children, align = 'end', side = 'bottom', classN
 }
 
 const itemClass =
-  'flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50';
+  'flex h-10 w-full cursor-pointer items-center gap-3 rounded-full px-3.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent [&_svg]:size-[18px] [&_svg]:shrink-0 [&_svg]:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50';
 
 interface MenuItemProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   destructive?: boolean;
@@ -156,12 +134,12 @@ export function MenuLink({
 
 export function MenuLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <p className="px-3.5 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
       {children}
     </p>
   );
 }
 
 export function MenuSeparator() {
-  return <div className="my-1 h-px bg-border/70" role="separator" />;
+  return <div className="my-1.5 h-px bg-border/60" role="separator" />;
 }

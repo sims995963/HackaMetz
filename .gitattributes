@@ -1,0 +1,6 @@
+# Les scripts PowerShell doivent arriver en CRLF sur la machine qui héberge :
+# Windows PowerShell 5.1 ne reconnaît pas les here-strings avec des fins de ligne Unix.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf

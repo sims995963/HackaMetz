@@ -47,6 +47,7 @@ interface FormState {
   demoUrl: string;
   videoUrl: string;
   consentPublish: boolean;
+  archiveDiscord: boolean;
 }
 
 export function SubmitPage() {
@@ -74,6 +75,7 @@ export function SubmitPage() {
     demoUrl: '',
     videoUrl: '',
     consentPublish: false,
+    archiveDiscord: false,
   });
   const folderInput = useRef<HTMLInputElement>(null);
   const zipInput = useRef<HTMLInputElement>(null);
@@ -136,6 +138,7 @@ export function SubmitPage() {
       demoUrl: form.demoUrl,
       videoUrl: form.videoUrl,
       consentPublish: form.consentPublish,
+      archiveDiscord: form.archiveDiscord,
     };
     const parsed = submissionMetaSchema.safeParse(meta);
     if (!parsed.success) {
@@ -500,6 +503,27 @@ export function SubmitPage() {
               )}
             </span>
           </label>
+
+          {/* Le salon Discord de l'équipe n'est archivé que sur demande explicite — jamais coché d'avance. */}
+          {h.discord && h.team.enabled && myTeam && (
+            <label
+              htmlFor={`${id}-archive-discord`}
+              className="flex cursor-pointer items-start gap-2.5 rounded-xl border bg-card p-4 text-sm"
+            >
+              <Checkbox
+                id={`${id}-archive-discord`}
+                checked={form.archiveDiscord}
+                onChange={(e) => set('archiveDiscord', e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Archiver le salon Discord de l’équipe avec le projet. Le fil texte sera exporté dans
+                la base de connaissance (<code className="font-mono text-xs">journal.md</code>) au
+                moment où les salons sont supprimés, 48 h après la fin. Sans cette case, il
+                disparaît sans trace.
+              </span>
+            </label>
+          )}
         </div>
 
         {/* Récapitulatif collant : ce qu'il reste à faire avant d'envoyer. */}

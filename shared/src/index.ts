@@ -15,3 +15,4 @@ export * from './schemas/search.schema';
 export * from './schemas/stats.schema';
 export * from './schemas/audit.schema';
 export * from './schemas/api.schema';
+export * from './schemas/discord.schema';

@@ -1,5 +1,6 @@
 import type { Announcement, Hackathon } from '@hackametz/shared';
 import { createAnnouncement } from '../models/announcement.model';
+import type { IntegrationHooks } from '../integrations/hooks';
 import type { EventBus } from '../realtime/eventBus';
 import type { Repositories } from '../repositories';
 import { AppError } from '../utils/errors';
@@ -8,6 +9,7 @@ export class AnnouncementService {
   constructor(
     private readonly repos: Repositories,
     private readonly events: EventBus,
+    private readonly hooks: IntegrationHooks,
   ) {}
 
   /** Épinglées d'abord, puis de la plus récente à la plus ancienne. */
@@ -27,6 +29,7 @@ export class AnnouncementService {
       createAnnouncement(hackathon.id, input),
     );
     this.events.emit('announcement', hackathon.slug, `Annonce : ${announcement.title}`);
+    await this.hooks.announcementPublished(hackathon, announcement);
     return announcement;
   }
 

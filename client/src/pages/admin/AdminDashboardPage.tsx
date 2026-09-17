@@ -172,19 +172,21 @@ export function AdminDashboardPage() {
         <Table>
           <thead>
             <tr>
-              <Th>#</Th>
+              <Th className="hidden sm:table-cell">#</Th>
               <Th>Hackathon</Th>
               <Th>Statut</Th>
               <Th className="text-right">Inscrits</Th>
-              <Th className="text-right">Projets</Th>
-              <Th>Deadline</Th>
+              <Th className="hidden text-right md:table-cell">Projets</Th>
+              <Th className="hidden lg:table-cell">Deadline</Th>
               <Th>Actions</Th>
             </tr>
           </thead>
           <tbody>
             {(hackathons ?? []).map((h) => (
               <tr key={h.id} className="hover:bg-accent/30">
-                <Td className="font-mono text-xs text-muted-foreground">{h.code}</Td>
+                <Td className="hidden font-mono text-xs text-muted-foreground sm:table-cell">
+                  {h.code}
+                </Td>
                 <Td>
                   <Link to={`/hackathons/${h.slug}`} className="font-medium hover:text-primary">
                     {h.title}
@@ -195,8 +197,10 @@ export function AdminDashboardPage() {
                   <StatusBadge status={h.status} />
                 </Td>
                 <Td className="text-right font-mono">{h.counts.participants}</Td>
-                <Td className="text-right font-mono">{h.counts.submissions}</Td>
-                <Td className="whitespace-nowrap text-xs text-muted-foreground">
+                <Td className="hidden text-right font-mono md:table-cell">
+                  {h.counts.submissions}
+                </Td>
+                <Td className="hidden whitespace-nowrap text-xs text-muted-foreground lg:table-cell">
                   {formatShort(h.dates.submissionDeadlineAt)}
                 </Td>
                 <Td className="whitespace-nowrap">
@@ -284,64 +288,67 @@ export function AdminDashboardPage() {
         </Table>
       </section>
 
-      {stats?.diagnostics && <ServerHealth diagnostics={stats.diagnostics} />}
-
-      <UsersPanel enabled={Boolean(stats)} />
-
-      <AuditLog enabled={Boolean(stats)} />
-
-      <section className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-        <div className="rounded-2xl border bg-card p-5">
-          <h2 className="text-lg font-semibold tracking-tight">Par statut</h2>
-          <ul className="mt-3 divide-y text-sm">
-            {stats &&
-              (Object.keys(stats.byStatus) as HackathonStatus[]).map((status) => (
-                <li key={status} className="flex items-center justify-between py-2">
-                  <StatusBadge status={status} />
-                  <span className="font-mono">{stats.byStatus[status]}</span>
-                </li>
-              ))}
-          </ul>
-        </div>
-        <div className="rounded-2xl border bg-card p-5">
-          <h2 className="text-lg font-semibold tracking-tight">Activité récente</h2>
-          {stats && stats.activity.length > 0 ? (
+      {/* Colonne large : ce qui bouge en direct. Colonne étroite : l’état du système. */}
+      <section className="grid items-start gap-6 lg:grid-cols-[1.35fr_1fr]">
+        <div className="flex flex-col gap-6">
+          <div className="rounded-2xl border bg-card p-5">
+            <h2 className="text-lg font-semibold tracking-tight">Activité récente</h2>
+            {stats && stats.activity.length > 0 ? (
+              <ul className="mt-3 max-h-[28rem] divide-y overflow-y-auto pr-1 text-sm">
+                {stats.activity.map((a, i) => (
+                  <li key={`${a.at}-${i}`} className="flex items-start gap-3 py-2">
+                    <span
+                      className={cn(
+                        'mt-1.5 size-2 shrink-0 rounded-full',
+                        a.type === 'submission'
+                          ? 'bg-[color:var(--brand-3)]'
+                          : a.type === 'registration'
+                            ? 'bg-primary'
+                            : a.type === 'question' || a.type === 'feedback'
+                              ? 'bg-[color:var(--brand-2)]'
+                              : 'bg-muted-foreground',
+                      )}
+                    />
+                    <p className="min-w-0 flex-1">
+                      <span className="font-medium">{a.pseudo}</span> {a.label}
+                      {a.hackathonSlug && (
+                        <>
+                          {' '}
+                          <Link
+                            to={`/hackathons/${a.hackathonSlug}`}
+                            className="text-primary hover:underline"
+                          >
+                            {a.hackathonTitle}
+                          </Link>
+                        </>
+                      )}
+                      <span className="block text-xs text-muted-foreground">{fromNow(a.at)}</span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">Rien pour l’instant.</p>
+            )}
+          </div>
+          <div className="rounded-2xl border bg-card p-5">
+            <h2 className="text-lg font-semibold tracking-tight">Par statut</h2>
             <ul className="mt-3 divide-y text-sm">
-              {stats.activity.map((a, i) => (
-                <li key={`${a.at}-${i}`} className="flex items-start gap-3 py-2">
-                  <span
-                    className={cn(
-                      'mt-1.5 size-2 shrink-0 rounded-full',
-                      a.type === 'submission'
-                        ? 'bg-[color:var(--brand-3)]'
-                        : a.type === 'registration'
-                          ? 'bg-primary'
-                          : a.type === 'question' || a.type === 'feedback'
-                            ? 'bg-[color:var(--brand-2)]'
-                            : 'bg-muted-foreground',
-                    )}
-                  />
-                  <p className="min-w-0 flex-1">
-                    <span className="font-medium">{a.pseudo}</span> {a.label}
-                    {a.hackathonSlug && (
-                      <>
-                        {' '}
-                        <Link
-                          to={`/hackathons/${a.hackathonSlug}`}
-                          className="text-primary hover:underline"
-                        >
-                          {a.hackathonTitle}
-                        </Link>
-                      </>
-                    )}
-                    <span className="block text-xs text-muted-foreground">{fromNow(a.at)}</span>
-                  </p>
-                </li>
-              ))}
+              {stats &&
+                (Object.keys(stats.byStatus) as HackathonStatus[]).map((status) => (
+                  <li key={status} className="flex items-center justify-between py-2">
+                    <StatusBadge status={status} />
+                    <span className="font-mono">{stats.byStatus[status]}</span>
+                  </li>
+                ))}
             </ul>
-          ) : (
-            <p className="mt-3 text-sm text-muted-foreground">Rien pour l’instant.</p>
-          )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {stats?.diagnostics && <ServerHealth diagnostics={stats.diagnostics} />}
+          <UsersPanel enabled={Boolean(stats)} />
+          <AuditLog enabled={Boolean(stats)} />
         </div>
       </section>
 

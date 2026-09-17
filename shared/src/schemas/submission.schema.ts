@@ -23,6 +23,8 @@ export const submissionMetaSchema = z.object({
     true,
     'Tu dois accepter que ton code soit publié dans la base de connaissance',
   ),
+  /** Salon Discord de l'équipe exporté avec le projet à la fermeture : sur choix explicite. */
+  archiveDiscord: z.boolean().default(false),
 });
 export type SubmissionMetaInput = z.input<typeof submissionMetaSchema>;
 export type SubmissionMeta = z.output<typeof submissionMetaSchema>;
@@ -86,6 +88,8 @@ export const submissionSchema = z.object({
     publish: z.literal(true),
     license: z.string(),
     at: z.iso.datetime(),
+    /** L'équipe a demandé que son salon Discord soit archivé avec le projet. */
+    archiveDiscord: z.boolean().default(false),
   }),
   submittedByUserId: z.string(),
   submittedAt: z.iso.datetime(),

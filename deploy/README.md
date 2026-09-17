@@ -55,7 +55,15 @@ ADMIN_KEY=<ta-clé> docker compose up -d --build
 Les données vivent dans deux volumes nommés, l'image reste jetable. _(Non testé sur cette machine :
 Docker n'y est pas installé — si tu pars sur cette option, vérifie le premier démarrage.)_
 
-**Vérifier dans tous les cas :** `curl http://localhost:3001/api/health` doit répondre `{"status":"ok"…}`.
+**Vérifier dans tous les cas :**
+
+```bash
+npm run doctor      # Node, clé, build, dossiers, disque, sauvegardes, port : tout d'un coup
+npm run smoke       # interroge l'instance en ligne (santé, front, API, SSE, espace admin fermé)
+```
+
+`npm run doctor` sort en erreur s'il manque quelque chose de bloquant — c'est le contrôle à passer
+avant d'ouvrir l'app aux participants. Les scripts d'installation le lancent déjà à la fin.
 
 ---
 
@@ -119,6 +127,50 @@ Pour repartir d'une base vierge avant l'événement (efface **tout**, y compris 
 npm run reset
 ```
 
+### Discord : un salon texte et un vocal par équipe (facultatif)
+
+HackaMetz peut piloter un serveur Discord : à la publication d'une édition, le bot crée une
+catégorie avec `#annonces`, `#accueil`, `#general` et un vocal ; à chaque équipe créée, un rôle,
+un salon texte et un vocal privés. Un participant tape `/rejoindre` suivi du **code d'équipe** (le
+même que dans HackaMetz) pour ouvrir ses salons. Les annonces de l'organisateur sont relayées dans
+`#annonces`. 48 h après la fin, tout est supprimé — Discord plafonne à 500 salons et 250 rôles par
+serveur, ce nettoyage rend l'édition suivante possible.
+
+**Créer le bot** (une fois, cinq minutes) :
+
+1. <https://discord.com/developers/applications> → **New Application**, nomme-la « HackaMetz ».
+2. Onglet **Bot** → **Reset Token** → copie le token : c'est `DISCORD_BOT_TOKEN`. Il ne sera plus
+   jamais affiché ; garde-le comme la clé d'organisateur, jamais dans Git.
+3. Toujours dans **Bot**, section _Privileged Gateway Intents_ : active **Message Content Intent**.
+   Sans lui, le bot ne peut pas lire un salon pour l'archiver, et Discord refuse la connexion.
+4. Onglet **OAuth2** → _URL Generator_ : coche le scope `bot` et `applications.commands`, puis les
+   permissions **Manage Channels**, **Manage Roles**, **Send Messages**, **Manage Messages**,
+   **Read Message History**, **Connect**. Ouvre l'URL générée et ajoute le bot à ton serveur.
+5. Dans Discord : _Paramètres utilisateur → Avancés → Mode développeur_, puis clic droit sur ton
+   serveur → **Copier l'identifiant du serveur** : c'est `DISCORD_GUILD_ID`.
+6. Crée un lien d'invitation permanent au serveur (clic droit sur un salon → _Inviter_, _Modifier
+   le lien_ → jamais d'expiration) : c'est `DISCORD_INVITE_URL`, montré aux participants.
+
+Dans `.env` :
+
+```ini
+DISCORD_BOT_TOKEN=…
+DISCORD_GUILD_ID=…
+DISCORD_INVITE_URL=https://discord.gg/…
+DISCORD_GRACE_HOURS=48
+```
+
+Redémarre le serveur. Le tableau de bord (`/admin`, « Santé du serveur ») affiche l'état du pont ;
+les logs disent `Pont Discord connecté`. Si le token manque ou si la connexion échoue, **le serveur
+tourne normalement sans Discord** et l'erreur s'affiche dans le tableau de bord.
+
+Le rôle du bot doit rester **au-dessus** des rôles d'équipe dans _Paramètres du serveur → Rôles_
+(c'est le cas par défaut : les rôles créés arrivent en bas). En tant que propriétaire du serveur,
+tu vois tous les salons d'équipe ; le message épinglé de chaque salon le dit aux participants.
+
+**Archivage** : un salon d'équipe n'est exporté dans la base de connaissance (`journal.md` à côté
+du code) que si l'équipe a coché la case au moment du dépôt. Sinon il est supprimé sans être lu.
+
 ---
 
 ## 4. Sauvegardes
@@ -131,38 +183,49 @@ npm run backup -- --every 30   # boucle toutes les 30 min, à lancer pendant l'�
 npm run backup -- --to D:/cle  # vers une clé USB ou un disque externe
 ```
 
-**Restaurer** : arrêter le serveur, remplacer `server/data` et `server/storage` par les dossiers de
-la sauvegarde choisie, relancer.
+**Restaurer** :
+
+```bash
+npm run restore                 # liste les sauvegardes disponibles
+npm run restore -- --latest     # restaure la plus récente
+```
+
+Le script refuse de tourner si le serveur écoute encore (restaurer sous ses pieds corromprait les
+fichiers), et met les données actuelles de côté dans `server/data.remplace-<date>` au lieu de les
+écraser. Arrête d'abord le service : `Stop-ScheduledTask HackaMetz` ou `sudo systemctl stop hackametz`.
 
 Le dashboard affiche l'espace disque restant et l'âge de la dernière sauvegarde ; au-delà de six
-heures, il le signale. **Fais une vraie restauration à blanc une fois avant le jour J.**
+heures, il le signale. La chaîne sauvegarde → effacement → restauration a été testée de bout en bout sur ce dépôt ; refais-la une fois sur la machine qui héberge, c'est cinq minutes.
 
 ---
 
 ## 5. Pendant l'événement
 
-| Besoin                     | Où                                                                  |
-| -------------------------- | ------------------------------------------------------------------- |
-| Écran à projeter           | menu ⋯ du hackathon → **Mode écran**, ou `/hackathons/<slug>/ecran` |
-| QR code à montrer          | menu ⋯ → **QR code**, ou `npm run qr -- <adresse publique>`         |
-| Annonce à tous             | onglet **Annonces** (arrive en direct chez les participants)        |
-| Questions des participants | onglet **Questions** ; le dashboard signale celles sans réponse     |
-| Suivi                      | dashboard : activité en direct, santé du serveur, journal           |
-| Exports                    | dashboard → **Exporter** (participants, projets, classement)        |
+| Besoin                     | Où                                                                    |
+| -------------------------- | --------------------------------------------------------------------- |
+| Écran à projeter           | menu ⋯ du hackathon → **Mode écran**, ou `/hackathons/<slug>/ecran`   |
+| QR code à montrer          | menu ⋯ → **QR code**, ou `npm run qr -- <adresse publique>`           |
+| Annonce à tous             | onglet **Annonces** (arrive en direct chez les participants)          |
+| Questions des participants | onglet **Questions** ; le dashboard signale celles sans réponse       |
+| Suivi                      | dashboard : activité en direct, santé du serveur, journal             |
+| Contrôle à distance        | `npm run smoke -- <adresse publique>` depuis n'importe quelle machine |
+| Journal du serveur         | `server/logs/hackametz.log` (LOG_FILE dans le `.env`)                 |
+| Exports                    | dashboard → **Exporter** (participants, projets, classement)          |
 
 ---
 
 ## 6. Si ça coince
 
-| Symptôme                               | Piste                                                                                                     |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Rien sur `localhost:3001`              | Windows : `Get-ScheduledTask HackaMetz` puis `Start-ScheduledTask` — Linux : `systemctl status hackametz` |
-| « ADMIN_KEY est une valeur d'exemple » | `npm run admin-key`, puis relancer le service                                                             |
-| Le tunnel a coupé                      | relancer la commande ; l'adresse change (option A), rediffuser le QR code                                 |
-| Dépôt refusé « secrets détectés »      | mode strict activé pour cette édition : le participant retire la clé et redépose                          |
-| Dépôt trop gros                        | augmenter la taille max dans le formulaire du hackathon (≤ 90 Mo derrière Cloudflare)                     |
-| Disque plein                           | `npm run backup -- --keep 3` puis supprimer les vieilles sauvegardes                                      |
-| Un pseudo bloqué sur un autre appareil | dashboard → **Pseudos** → _Libérer_ (politique `device-bound`)                                            |
+| Symptôme                               | Piste                                                                                                                        |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Rien sur `localhost:3001`              | `npm run doctor` ; Windows : `Get-ScheduledTask HackaMetz` puis `Start-ScheduledTask` — Linux : `systemctl status hackametz` |
+| Comprendre un incident passé           | `server/logs/hackametz.log` (clés et jetons y sont masqués)                                                                  |
+| « ADMIN_KEY est une valeur d'exemple » | `npm run admin-key`, puis relancer le service                                                                                |
+| Le tunnel a coupé                      | relancer la commande ; l'adresse change (option A), rediffuser le QR code                                                    |
+| Dépôt refusé « secrets détectés »      | mode strict activé pour cette édition : le participant retire la clé et redépose                                             |
+| Dépôt trop gros                        | augmenter la taille max dans le formulaire du hackathon (≤ 90 Mo derrière Cloudflare)                                        |
+| Disque plein                           | `npm run backup -- --keep 3` puis supprimer les vieilles sauvegardes                                                         |
+| Un pseudo bloqué sur un autre appareil | dashboard → **Pseudos** → _Libérer_ (politique `device-bound`)                                                               |
 
 ---
 

@@ -43,3 +43,9 @@ export const adminKeyRateLimit = limiter({
   limit: 20,
   skip: (req) => req.isAdmin === true || req.header('x-admin-key') === undefined,
 });
+
+/**
+ * Téléchargements zip : lire et compresser toute une base de connaissance coûte du disque
+ * et du CPU. Assez large pour un organisateur qui récupère plusieurs éditions d'affilée.
+ */
+export const downloadRateLimit = limiter({ windowMs: minutes(10), limit: 40 });

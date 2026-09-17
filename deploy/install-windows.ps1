@@ -56,6 +56,15 @@ if ($needsKey) {
     Write-Host "    Cle deja en place (elle n'est pas affichee)."
 }
 
+Step "Journal dans un fichier"
+$envText = Get-Content $envPath -Raw
+if ($envText -notmatch "(?m)^LOG_FILE=") {
+    Add-Content -Path $envPath -Value "LOG_FILE=server/logs/hackametz.log" -Encoding utf8
+    Write-Host "    server/logs/hackametz.log"
+} else {
+    Write-Host "    deja configure"
+}
+
 if (-not $SkipBuild) {
     Step "Installation des dependances"
     npm ci
@@ -92,14 +101,9 @@ if ($npm) {
     Write-Host "    npm introuvable : sauvegarde a planifier a la main." -ForegroundColor Yellow
 }
 
-Step "Verification"
-Start-Sleep -Seconds 4
-try {
-    $health = Invoke-RestMethod "http://localhost:$Port/api/health" -TimeoutSec 10
-    Write-Host "    Serveur en ligne - version $($health.version)" -ForegroundColor Green
-} catch {
-    Write-Host "    Pas encore de reponse sur le port $Port. Verifie avec : Get-ScheduledTask $TaskName" -ForegroundColor Yellow
-}
+Step "Controle complet"
+Start-Sleep -Seconds 5
+npm run doctor
 
 Write-Host ""
 Write-Host "Prochaine etape : exposer le serveur sur Internet." -ForegroundColor Gray

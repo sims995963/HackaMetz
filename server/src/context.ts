@@ -1,10 +1,12 @@
 import type { PseudoPolicy } from '@hackametz/shared';
+import { HookRegistry } from './integrations/hooks';
 import { EventBus } from './realtime/eventBus';
 import { createRepositories, type Repositories } from './repositories';
 import { AnnouncementService } from './services/announcement.service';
 import { AuditService } from './services/audit.service';
 import { AuthService } from './services/auth.service';
 import { DiagnosticsService } from './services/diagnostics.service';
+import { DownloadService } from './services/download.service';
 import { EvaluationService } from './services/evaluation.service';
 import { ExportService } from './services/export.service';
 import { FeedbackService } from './services/feedback.service';
@@ -33,6 +35,8 @@ export interface AppContext {
   repos: Repositories;
   storage: HackathonStorage;
   events: EventBus;
+  /** Intégrations externes (Discord) : no-op tant que rien n'est branché. */
+  hooks: HookRegistry;
   services: {
     auth: AuthService;
     hackathons: HackathonService;
@@ -42,6 +46,7 @@ export interface AppContext {
     announcements: AnnouncementService;
     evaluations: EvaluationService;
     kb: KnowledgeBaseService;
+    downloads: DownloadService;
     votes: VoteService;
     proposals: ProposalService;
     questions: QuestionService;
@@ -58,8 +63,9 @@ export function createContext(options: ContextOptions): AppContext {
   const repos = createRepositories(options.dataDir);
   const storage = new HackathonStorage(options.storageDir);
   const events = new EventBus();
+  const hooks = new HookRegistry();
   const registrations = new RegistrationService(repos, events);
-  const teams = new TeamService(repos, events);
+  const teams = new TeamService(repos, events, hooks);
   const votes = new VoteService(repos, events);
   const proposals = new ProposalService(repos);
   const evaluations = new EvaluationService(repos, votes);
@@ -69,15 +75,17 @@ export function createContext(options: ContextOptions): AppContext {
     repos,
     storage,
     events,
+    hooks,
     services: {
       auth: new AuthService(repos, options.pseudoPolicy),
-      hackathons: new HackathonService(repos, storage, events, proposals),
+      hackathons: new HackathonService(repos, storage, events, proposals, hooks),
       registrations,
       teams,
       submissions: new SubmissionService(repos, storage, registrations, teams, events),
-      announcements: new AnnouncementService(repos, events),
+      announcements: new AnnouncementService(repos, events, hooks),
       evaluations,
       kb: new KnowledgeBaseService(repos, storage, evaluations),
+      downloads: new DownloadService(repos, storage),
       votes,
       proposals,
       questions: new QuestionService(repos, events),
@@ -85,7 +93,7 @@ export function createContext(options: ContextOptions): AppContext {
       profile: new ProfileService(repos, evaluations),
       search: new SearchService(repos),
       exports: new ExportService(repos, registrations, evaluations, feedback),
-      diagnostics: new DiagnosticsService(options.dataDir, options.storageDir),
+      diagnostics: new DiagnosticsService(options.dataDir, options.storageDir, hooks),
       audit: new AuditService(repos),
     },
   };

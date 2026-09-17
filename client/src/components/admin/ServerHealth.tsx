@@ -1,5 +1,5 @@
 import type { Diagnostics } from '@hackametz/shared';
-import { Database, HardDrive, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { Database, HardDrive, MessageCircle, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { fromNow } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
@@ -33,27 +33,23 @@ export function ServerHealth({ diagnostics: d }: { diagnostics: Diagnostics }) {
         <HardDrive className="size-4 text-muted-foreground" /> Santé du serveur
       </h2>
 
-      <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl bg-muted/50 px-3 py-2.5">
-          <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            Projets archivés
-          </dt>
-          <dd className="mt-0.5 font-mono text-sm">
+      <dl className="mt-4 flex flex-col divide-y divide-border/60 text-sm">
+        <div className="flex items-baseline justify-between gap-4 py-2 first:pt-0">
+          <dt className="text-muted-foreground">Projets archivés</dt>
+          <dd className="font-mono">
             {formatBytes(d.storageBytes)}
             <span className="text-muted-foreground"> · {d.storageFiles} fichiers</span>
           </dd>
         </div>
-        <div className="rounded-xl bg-muted/50 px-3 py-2.5">
-          <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-            <Database className="size-3" /> Base JSON
+        <div className="flex items-baseline justify-between gap-4 py-2">
+          <dt className="inline-flex items-center gap-1.5 text-muted-foreground">
+            <Database className="size-3.5" /> Base JSON
           </dt>
-          <dd className="mt-0.5 font-mono text-sm">{formatBytes(d.dataBytes)}</dd>
+          <dd className="font-mono">{formatBytes(d.dataBytes)}</dd>
         </div>
-        <div className={cn('rounded-xl px-3 py-2.5', diskLow ? 'bg-warning/15' : 'bg-muted/50')}>
-          <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            Disque libre
-          </dt>
-          <dd className={cn('mt-0.5 font-mono text-sm', diskLow && 'text-warning')}>
+        <div className="flex items-baseline justify-between gap-4 py-2">
+          <dt className={cn('text-muted-foreground', diskLow && 'text-warning')}>Disque libre</dt>
+          <dd className={cn('font-mono', diskLow && 'font-semibold text-warning')}>
             {d.diskTotalBytes > 0 ? (
               <>
                 {formatBytes(d.diskFreeBytes)}
@@ -62,6 +58,33 @@ export function ServerHealth({ diagnostics: d }: { diagnostics: Diagnostics }) {
             ) : (
               'inconnu'
             )}
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-4 py-2 last:pb-0">
+          <dt className="inline-flex items-center gap-1.5 text-muted-foreground">
+            <MessageCircle className="size-3.5" /> Discord
+          </dt>
+          <dd
+            className={cn(
+              'text-right',
+              d.discord.state === 'error' && 'font-semibold text-warning',
+            )}
+            title={d.discord.error ?? undefined}
+          >
+            {d.discord.state === 'disabled' && (
+              <span className="text-muted-foreground">non configuré</span>
+            )}
+            {d.discord.state === 'connecting' && 'connexion…'}
+            {d.discord.state === 'connected' && (
+              <>
+                {d.discord.guildName}
+                <span className="text-muted-foreground">
+                  {' '}
+                  · {d.discord.openSpaces} espace{d.discord.openSpaces > 1 ? 's' : ''}
+                </span>
+              </>
+            )}
+            {d.discord.state === 'error' && 'en erreur'}
           </dd>
         </div>
       </dl>

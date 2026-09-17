@@ -2,7 +2,7 @@
  * Données de démo : `npm run seed` (ajoute si vide) ou `npm run seed -- --reset` (repart de zéro).
  * Les dates sont relatives à aujourd'hui pour que la démo reste vivante.
  */
-import { writeFile } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { CreateHackathonInput, HackathonStatus } from '@hackametz/shared';
 import { createHackathonInputSchema } from '@hackametz/shared';
@@ -312,6 +312,7 @@ async function seedProjects() {
         demoUrl: null,
         videoUrl: null,
         consentPublish: true,
+        archiveDiscord: false,
       },
       archive: { path: zipPath, size: bytes.byteLength, originalName: `${p.title}.zip` },
     });
@@ -558,6 +559,10 @@ async function main() {
     await ctx.repos.users.clear();
     console.log('Collections vidées.');
     if (empty) {
+      // Les dossiers de projets doivent partir aussi : sinon la prochaine édition #001
+      // réutiliserait le dossier d'une ancienne et mélangerait les dépôts.
+      await rm(join(paths.storageDir, 'hackathons'), { recursive: true, force: true });
+      console.log('Dossiers de projets supprimés.');
       console.log('Base vide : crée ton édition depuis /admin.');
       return;
     }

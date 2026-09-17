@@ -8,6 +8,7 @@ import {
   Heart,
   LayoutDashboard,
   LogIn,
+  Plus,
   QrCode,
   ShieldCheck,
   Sparkles,
@@ -100,6 +101,8 @@ export function LandingPage() {
   const next = visible.find((h) => h.status === 'published');
   const featured = live ?? next ?? visible[0];
   const recent = visible.filter((h) => h.id !== featured?.id).slice(0, 3);
+  /** Instance toute neuve : aucune édition publiée. */
+  const isEmpty = visible.length === 0;
 
   return (
     <div className="flex flex-col gap-20">
@@ -410,14 +413,28 @@ export function LandingPage() {
         <div className="grid-fade pointer-events-none absolute inset-0 opacity-60" aria-hidden />
         <div className="relative flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Prêt pour la prochaine édition ?</h2>
+            <h2 className="text-3xl font-bold tracking-tight">
+              {isEmpty ? 'Aucune édition pour l’instant' : 'Prêt pour la prochaine édition ?'}
+            </h2>
             <p className="mt-2 max-w-xl text-white/85">
-              Entre avec un pseudo, rejoins l’édition en cours ou prépare la tienne depuis l’espace
-              organisateur.
+              {isEmpty
+                ? 'La première édition sera annoncée ici. Organisateur ? Crée-la depuis l’espace dédié.'
+                : 'Entre avec un pseudo, rejoins l’édition en cours ou prépare la tienne depuis l’espace organisateur.'}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            {!isLoggedIn && (
+            {isEmpty && (
+              <Link
+                to="/admin/hackathons/new"
+                className={cn(
+                  buttonVariants({ size: 'lg' }),
+                  'bg-white text-[#0b1020] shadow-none hover:bg-white/90 hover:brightness-100',
+                )}
+              >
+                <Plus /> Créer la première édition
+              </Link>
+            )}
+            {!isEmpty && !isLoggedIn && (
               <Button
                 size="lg"
                 className="bg-white text-[#0b1020] shadow-none hover:bg-white/90 hover:brightness-100"
@@ -473,6 +490,8 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 /** Aperçu produit : trois panneaux flottants inspirés des vraies pages, sur les données de l'édition mise en avant. */
 function HeroPreview({ hackathon }: { hackathon?: HackathonWithCounts }) {
+  /** Sans édition réelle, les chiffres affichés sont une illustration : on l'annonce. */
+  const isExample = hackathon === undefined;
   const title = hackathon?.title ?? 'Ville durable';
   const code = hackathon?.code ?? '002';
   const participants = hackathon?.counts.participants ?? 24;
@@ -484,7 +503,9 @@ function HeroPreview({ hackathon }: { hackathon?: HackathonWithCounts }) {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[11px] font-medium text-emerald-200">
             <span className="size-1.5 rounded-full bg-emerald-300" /> En cours
           </span>
-          <span className="font-mono text-[11px] text-white/50">#{code}</span>
+          <span className="font-mono text-[11px] text-white/50">
+            {isExample ? 'exemple' : `#${code}`}
+          </span>
         </div>
         <p className="mt-3 font-display text-xl font-bold">{title}</p>
         <div className="mt-4 flex gap-2">

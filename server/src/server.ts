@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import { resolve } from 'node:path';
 import { createApp } from './app';
-import { env, paths } from './config/env';
+import { discordConfig, env, paths } from './config/env';
 import { projectRoot } from './config/paths';
 import { createContext } from './context';
 import { startLifecycleJob } from './jobs/lifecycle.job';
@@ -24,6 +24,14 @@ const ctx = createContext({
 });
 
 const app = createApp(ctx);
+
+// Le pont Discord se connecte avant le job de cycle de vie : le premier tick le trouve prêt.
+let stopDiscord: () => Promise<void> = async () => undefined;
+if (discordConfig) {
+  const { startDiscordBridge } = await import('./integrations/discord/start');
+  stopDiscord = await startDiscordBridge(ctx, discordConfig);
+}
+
 const stopLifecycleJob = startLifecycleJob(ctx);
 const server = app.listen(env.PORT, () => {
   logger.info(
@@ -50,6 +58,7 @@ const server = app.listen(env.PORT, () => {
 function shutdown(signal: string) {
   logger.info({ signal }, 'Arrêt du serveur');
   stopLifecycleJob();
+  void stopDiscord().catch(() => undefined);
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();
 }

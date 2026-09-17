@@ -219,7 +219,7 @@ export function CommandPalette({ open, onClose }: Props) {
         if (e.target === dialogRef.current) onClose();
       }}
       aria-label="Recherche et navigation"
-      className="m-0 mx-auto mt-[8vh] w-[min(94vw,40rem)] rounded-2xl border border-border/70 bg-card p-0 text-card-foreground shadow-pop backdrop:bg-black/50 backdrop:backdrop-blur-sm"
+      className="floating-surface m-0 mx-auto mt-[8vh] w-[min(94vw,40rem)] rounded-[24px] border border-border/60 p-0 text-card-foreground backdrop:bg-black/50 backdrop:backdrop-blur-sm"
     >
       <div className="flex items-center gap-3 border-b border-border/60 px-4">
         <Search className="size-4 shrink-0 text-muted-foreground" />

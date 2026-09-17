@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { ApiError } from '@/api/client';
+import { DownloadMenu } from '@/components/hackathon/DownloadMenu';
 import { Avatar } from '@/components/session/Avatar';
 import { Badge } from '@/components/ui/badge';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -124,7 +125,20 @@ export function ProjectPage() {
               </span>
             )}
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">{s.title}</h1>
+          <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">{s.title}</h1>
+            <DownloadMenu
+              size="sm"
+              label="Télécharger le code"
+              project={{ id: s.id, title: s.title }}
+              edition={
+                hackathon
+                  ? { slug: hackathon.slug, code: hackathon.code, title: hackathon.title }
+                  : null
+              }
+              knowledgeBase={false}
+            />
+          </div>
           {s.pitch && <p className="mt-2 max-w-2xl text-lg text-muted-foreground">{s.pitch}</p>}
 
           <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">

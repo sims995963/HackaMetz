@@ -32,7 +32,7 @@ export interface NewSubmissionParams {
 
 export function createSubmission(p: NewSubmissionParams): Submission {
   const now = nowIso();
-  const { consentPublish: _consent, ...meta } = p.meta;
+  const { consentPublish: _consent, archiveDiscord, ...meta } = p.meta;
   return {
     id: newId(),
     hackathonId: p.hackathonId,
@@ -45,7 +45,7 @@ export function createSubmission(p: NewSubmissionParams): Submission {
     files: p.files,
     versions: [p.version],
     status: p.status,
-    consent: { publish: true, license: p.license, at: now },
+    consent: { publish: true, license: p.license, at: now, archiveDiscord },
     submittedByUserId: p.submittedByUserId,
     submittedAt: now,
     updatedAt: now,
@@ -64,10 +64,12 @@ export function applyResubmission(
     status: SubmissionStatus;
   },
 ): Submission {
-  const { consentPublish: _consent, ...meta } = p.meta;
+  const { consentPublish: _consent, archiveDiscord, ...meta } = p.meta;
   return {
     ...existing,
     ...meta,
+    // Le choix d'archivage suit la dernière version déposée.
+    consent: { ...existing.consent, archiveDiscord },
     ownerPseudo: p.owner.label,
     teamMembers: p.owner.members,
     files: p.files,

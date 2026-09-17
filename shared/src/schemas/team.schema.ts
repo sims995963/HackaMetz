@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { teamDiscordSchema } from './discord.schema';
 import { participantSchema } from './registration.schema';
 
 export const teamNameSchema = z
@@ -33,7 +34,11 @@ export const teamPublicSchema = teamSchema.omit({ inviteCode: true, memberIds: t
 export type TeamPublic = z.infer<typeof teamPublicSchema>;
 
 /** Vue d'un membre : avec le code d'invitation à partager. */
-export const teamMineSchema = teamPublicSchema.extend({ inviteCode: z.string() });
+export const teamMineSchema = teamPublicSchema.extend({
+  inviteCode: z.string(),
+  /** Salons Discord de l'équipe, quand le pont est actif et les a créés. */
+  discord: teamDiscordSchema.nullable().default(null),
+});
 export type TeamMine = z.infer<typeof teamMineSchema>;
 
 export const createTeamInputSchema = z.object({ name: teamNameSchema });

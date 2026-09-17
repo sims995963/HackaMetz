@@ -179,6 +179,12 @@ export class HackathonStorage {
     );
   }
 
+  /** Journal Discord de l'équipe, à côté de `project.json` et de `source/`. */
+  async writeProjectJournal(sourcePath: string, markdown: string): Promise<void> {
+    const projectDir = join(this.absolute(sourcePath), '..');
+    await writeFile(join(projectDir, 'journal.md'), markdown, 'utf8');
+  }
+
   async writeHackathonReadme(
     hackathon: Hackathon,
     submissions: Submission[],
